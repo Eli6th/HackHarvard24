@@ -11,6 +11,7 @@ import { Icons } from '@/components/icons';
 function L0Node({ data }: NodeProps<{
   title: string;
   expanded: boolean;
+  isHighlighted: boolean;
   data: {
     title: string;
     rows: string[] | number[];
@@ -37,6 +38,16 @@ function L0Node({ data }: NodeProps<{
         }}
       >
         <TypographyH4>{data.title}</TypographyH4>
+        {data.isHighlighted && (
+          <Button
+            variant="ghost"
+            className="absolute -right-12 top-1 rounded-full border-0 border-[#423629] text-[#fff] bg-[#B36A5E] font-extrabold hover:bg-[#B36A5E] hover:text-[#fff] hover:border-[#423629] hover:border-2"
+            style={{ height: '40px', width: '40px' }}
+            onClick={() => setIsExpanded(true)}
+          >
+            <Icons.expand size={24} className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5" />
+          </Button>
+        )}
 
         <Handle type={'source'} position={Position.Left} id="left" />
         <Handle type={'source'} position={Position.Bottom} id="bottom" />
@@ -50,8 +61,8 @@ function L0Node({ data }: NodeProps<{
     <div className="relative">
       <div
         style={{
-          background: '#F9F6F0',
-          color: '#222',
+          background: '#B36A5E',
+          color: '#fff',
           padding: 10,
           fontSize: 12,
           borderRadius: 10,
@@ -62,18 +73,18 @@ function L0Node({ data }: NodeProps<{
       >
         <div className="flex justify-between">
           <TypographyH4>{data.title}</TypographyH4>
-          <Button variant="ghost" className="rounded-full text-gray-800 font-extrabold hover:bg-[#F9F6F0] hover:border-gray-800" onClick={() => setIsExpanded(false)}>
+          <Button variant="ghost" className="rounded-full text-[#fff] font-extrabold hover:bg-[#B36A5E] hover:text-[#fff]" onClick={() => setIsExpanded(false)}>
             <Icons.close size={24} className="w-5 h-5 mb-3" />
           </Button>
         </div>
-        <div style={{ marginTop: 5 }} className="flex flex-col gap-2">
+        <div style={{ marginTop: 5 }} className="flex flex-row gap-2 border-1 border-white">
           {data.data.map((item) => (
-            <>
+            <div key={item.title} className="flex flex-col gap-2">
               <h4 key={item.title}>{item.title}</h4>
               {item.rows.map((row) => (
                 <p key={row}>{row}</p>
               ))}
-            </>
+            </div>
           ))}
         </div>
 

@@ -32,7 +32,7 @@ const initialNodes: Node[] = [
   { id: '1', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 1', text: 'One day, while lounging beneath a tall oak tree, Felix overheard a conversation between two squirrels. They were chatting excitedly about a mysterious, enchanted maze deep in the heart of the forest. The rumor was that no animal had ever solved the maze and those who tried got lost forever, unable to escape its winding paths.', expanded: true, edgePoints: [false, true, true, false], questions: ['What is the name of the forest?', 'What is the name of the maze?', 'What is the name of the squirrels?', 'What is the name of the tree?'] } },
   { id: '2', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 2', text: 'Node 2', expanded: false, edgePoints: [false, true, true, false], questions: ['What is the name of the forest?', 'What is the name of the maze?', 'What is the name of the squirrels?'] } },
   { id: '3', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 3', text: 'Node 3', expanded: false, edgePoints: [false, true, true, false], questions: [] } },
-  { id: '4', type: 'L0', position: { x: 0, y: 0 }, data: { title: 'Node 4', data: [] } },
+  { id: '4', type: 'L0', position: { x: 0, y: 0 }, data: { title: 'Node 4', data: [{title: 'Column 1', rows: ['Row 1', 'Row 2', 'Row 3']}, {title: 'Column 2', rows: ['Row 4', 'Row 5', 'Row 6']}, {title: 'Column 3', rows: ['Row 7', 'Row 8', 'Row 9']}] } },
 ];
 
 const flowKey = 'flow';
