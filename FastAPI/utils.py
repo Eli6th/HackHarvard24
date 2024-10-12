@@ -391,8 +391,6 @@ def exa_search(query: str) -> ExaSearchResponse:
     return ExaSearchResponse(results=formatted_results, total_results=len(raw_results.results))
 
 
-
-
 if __name__ == '__main__':
     level_one_nodes = initiate_level_one_multiprocess()
     print(json.dumps(level_one_nodes))
