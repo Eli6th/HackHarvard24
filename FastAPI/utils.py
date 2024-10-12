@@ -10,8 +10,8 @@ from pydantic import BaseModel
 from typing import BinaryIO, Tuple, List, Optional
 import json
 from sqlalchemy.orm import Session
-from FastAPI.database import Hub, Node, Image, Question, get_db
-from FastAPI.consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
+from database import Hub, Node, Image, Question, get_db
+from consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
     SUGGESTED_QUESTION_PROMPT, L2_OUTPUT
 
 load_dotenv()
