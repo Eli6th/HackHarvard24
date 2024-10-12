@@ -7,6 +7,7 @@ import uuid
 from utils import initiate_level_one_multiprocess, create_level_two_node
 import threading
 import json
+from utils import ExaSearchResponse
 
 app = FastAPI()
 
@@ -25,8 +26,14 @@ def run_utils_main():
     level_one_nodes = initiate_level_one_multiprocess()
     level_one_nodes = json.loads(level_one_nodes)
     for node in level_one_nodes:
-        result = create_level_two_node(node)
-        print(result)
+        response = create_level_two_node(node)
+        print(f"For node {node['title']} generated with prompt {node['prompt']}, we receive the following results:")
+        for result in response.results:
+            print(result)
+            # print(result.title)
+            # print(result.url)
+            # print(result.summary)
+            print()
 
 
 @app.get("/image/{image_id}")
