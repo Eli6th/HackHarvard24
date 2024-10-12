@@ -5,3 +5,5 @@ venv/*
 images.txt
 datasets
 usa_rain_prediction.csv
+
+test.db
