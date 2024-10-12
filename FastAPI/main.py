@@ -9,7 +9,7 @@ import threading
 import uvicorn
 from sqlalchemy.orm import Session as _Session
 
-from utils import l1_init, create_assistant_for_file, create_level_two_node, get_db
+from utils import l1_init, create_assistant_for_file, l2_init, get_db
 from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image
 
 app = FastAPI()

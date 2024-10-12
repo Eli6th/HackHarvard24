@@ -220,8 +220,9 @@ def l1_init(hub: Hub, initial_thread: str):
             (hub, thread_id, prompt) for prompt, thread_id in prompts_with_threads
         ])
 
-# New level two prompting using Exa
-def create_level_two_node(prev_node: Node):
+
+# Create L2 node
+def l2_init(hub: Hub, prev_node: Node):
     # Use the findings from level one to prompt OpenAI for a query that Exa can use, and incorporate Exa prompt guidelines for better query formulation
     level_two_prompt = (
         f"""Our findings about {prev_node.title} suggest the following trends: 
@@ -244,13 +245,13 @@ def create_level_two_node(prev_node: Node):
     # Parse the generated search query
     search_query = generated_query.text_list[0]  # (Assuming first response contains the search query)
 
-    # print(search_query)
-
-    # Use the search query to call Exa's search function and fetch relevant papers
+    # Use the search query to call Exa's search function and fetch relevant papers and resources
     search_results = exa_search(query=search_query)
 
-    print(search_results)
-    return search_results
+    # TODO: Create L2 nodes for each of the main search results
+
+    # print(search_results)
+    # return search_results
 
 
 # Define exa search function
@@ -258,9 +259,6 @@ def exa_search(query: str) -> ExaSearchResponse:
     # Perform the Exa search (assumed to return a list of dicts or similar)
     raw_results = exa.search_and_contents(query=query, type='auto', summary=True, num_results=L2_OUTPUT)
 
-    # print("RAW RESULTS ARE:")
-
-    print(raw_results)
     # Example of how you would format the results into the Pydantic model
     formatted_results = [
         SearchResult(
