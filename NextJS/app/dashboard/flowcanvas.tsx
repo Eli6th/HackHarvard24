@@ -20,15 +20,19 @@ import ReactFlow, {
   type Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextNode from './generatednode';
+import L1Node from './L1node';
+import L0node from './L0node';
 
 const nodeTypes = {
-  text: TextNode,
+  L0: L0node,
+  L1: L1Node,
 };
 
 const initialNodes: Node[] = [
-  { id: '1', type: 'text', position: { x: 0, y: 0 }, data: { title: 'Node 1', text: 'Node 1' } },
-  { id: '2', type: 'text', position: { x: 0, y: 0 }, data: { title: 'Node 2', text: 'Node 2' } },
+  { id: '1', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 1', text: 'One day, while lounging beneath a tall oak tree, Felix overheard a conversation between two squirrels. They were chatting excitedly about a mysterious, enchanted maze deep in the heart of the forest. The rumor was that no animal had ever solved the maze and those who tried got lost forever, unable to escape its winding paths.', expanded: true, edgePoints: [false, true, true, false], questions: ['What is the name of the forest?', 'What is the name of the maze?', 'What is the name of the squirrels?', 'What is the name of the tree?'] } },
+  { id: '2', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 2', text: 'Node 2', expanded: false, edgePoints: [false, true, true, false], questions: ['What is the name of the forest?', 'What is the name of the maze?', 'What is the name of the squirrels?'] } },
+  { id: '3', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 3', text: 'Node 3', expanded: false, edgePoints: [false, true, true, false], questions: [] } },
+  { id: '4', type: 'L0', position: { x: 0, y: 0 }, data: { title: 'Node 4', data: [] } },
 ];
 
 const flowKey = 'flow';
@@ -45,16 +49,23 @@ function FlowCanvas() {
     (changes: EdgeChange[]) => void
   ];
   const [rfInstance, setRfInstance] = useState<any>(null);
-  const { setViewport } = useReactFlow();
+  const { setCenter, getNode, setViewport } = useReactFlow();
 
   const onConnect = useCallback(
-    (params: Edge | Connection) =>
+    (params: Connection) =>
       setEdges((eds) =>
         addEdge(
           {
             ...params,
-            type: 'floating',
-            markerEnd: { type: MarkerType.Arrow },
+            type: 'default',
+            markerEnd: {
+              type: MarkerType.Arrow,
+              width: 20,
+              height: 20
+            },
+            style: {
+              strokeWidth: 3,
+            },
           },
           eds,
         ),
@@ -62,15 +73,27 @@ function FlowCanvas() {
     [setEdges],
   );
 
-  const handleDoubleClick = useCallback((event: React.MouseEvent, node: Node) => {
-    const currentLabel = node.data?.label ?? 'No label';
-    const newLabel = prompt('Enter new label:', currentLabel);
-    if (newLabel !== null) {
-      setNodes((nds) =>
-        nds.map((n) => (n.id === node.id ? { ...n, data: { ...n.data, label: newLabel } } : n))
-      );
+  const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === node.id) {
+          return { ...n, data: { ...n.data, isHighlighted: true } };
+        }
+        return { ...n, data: { ...n.data, isHighlighted: false } };
+      }),
+    );
+
+    if ((event.target as HTMLElement).tagName === 'BUTTON') {
+      return;
     }
-  }, [setNodes]);
+
+    // Get the position of the clicked node
+    const nodeObj = getNode(node.id);
+    if (nodeObj) {
+      // Center the view on the clicked node
+      setCenter(nodeObj.position.x, nodeObj.position.y, { zoom: 0.95, duration: 1500 });
+    }
+  }, [getNode, setCenter, setNodes]);
 
   const onSave = useCallback(() => {
     if (rfInstance && typeof rfInstance.toObject === 'function') {
@@ -113,11 +136,13 @@ function FlowCanvas() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
+        onNodesChange={(changes) => {
+          onNodesChange(changes);
+        }}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onInit={setRfInstance}
-        onNodeDoubleClick={handleDoubleClick}
+        onNodeClick={handleNodeClick}
         fitView
         fitViewOptions={{ padding: 2 }}
         // nodesConnectable={false}
