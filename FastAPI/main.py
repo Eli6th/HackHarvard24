@@ -102,7 +102,7 @@ def run_utils_main():
     #    print(result)
 
 
-@app.get("/image/{image_id}")
+@app.get("/images/{image_id}")
 async def get_image(image_id: str, db: Session = Depends(get_db)):
     # Fetch the image from the database
     image = read_image_from_db(image_id, db)
