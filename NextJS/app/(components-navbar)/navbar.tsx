@@ -10,12 +10,13 @@ export default async function Navbar({ className, ...props }: React.HTMLAttribut
   } = await supabase.auth.getUser();
   return (
     <nav className={cn("flex items-center space-x-4 lg:space-x-6", className)} {...props}>
-      <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
-        Home
-      </Link>
-      {user && (
-        <Link href="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
+      {user ? (
+        <Link href="/dashboard" className="text-sm font-medium transition-colors">
           Dashboard
+        </Link>
+      ) : (
+        <Link href="/" className="text-sm font-medium transition-colors">
+          Home
         </Link>
       )}
     </nav>
