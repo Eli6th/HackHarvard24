@@ -10,9 +10,10 @@ from pydantic import BaseModel
 from typing import BinaryIO, Tuple, List, Optional
 import json
 from sqlalchemy.orm import Session
+
 from database import Hub, Node, Image, Question, get_db
 from consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
-    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT
+    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT, DELIMITER
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -194,7 +195,7 @@ def _l1_create_node(hub: Hub, thread_id: str, prompt: str, db: Session = next(ge
 
     # Get interesting questions for a given Node (if any)
     response = _message_and_wait_for_reply(hub.assistant_id, thread_id, SUGGESTED_QUESTION_PROMPT)
-    suggested_questions = re.findall(r'#(.*?)#', response.text_list[0])
+    suggested_questions = re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0])
     for question_text in suggested_questions:
         question = Question(content=question_text)  # Create a Question object
         new_node.questions.append(question)  # Associate the question with the node
@@ -207,7 +208,7 @@ def _l1_create_node(hub: Hub, thread_id: str, prompt: str, db: Session = next(ge
 def l1_init(hub: Hub, initial_thread: str):
     # Determine the five initial prompts per node
     response = _message_and_wait_for_reply(hub.assistant_id, initial_thread, INITIAL_PROMPT)
-    next_prompts = re.findall(r'#(.*?)#', response.text_list[0])
+    next_prompts = re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0])
 
     # Extract and create threads per node
     prompts_with_threads = [(prompt + LEVEL_ONE_PROMPT_SUFFIX + prompt, client.beta.threads.create().id) for prompt in
