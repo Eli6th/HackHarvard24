@@ -8,125 +8,22 @@ from openai import OpenAI
 from exa_py import Exa
 from pydantic import BaseModel
 from typing import BinaryIO, Tuple, List, Optional
-from PIL import Image
 import json
+from sqlalchemy.orm import Session
+from FastAPI.database import Hub, Node, Image, Question, get_db
+from FastAPI.consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
+    SUGGESTED_QUESTION_PROMPT
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 exa = Exa(api_key=os.getenv("EXA_API_KEY"))
 
 
-INSTRUCTIONS = """
-You will use data as a database for a mind map of data. You will first use this data to perform basic analyses to derive correlations and distributions between different columns (variables) for the data. You will then return these to the user. The user will then ask for more open-ended analysis and to come up with creative meanings behind the data correlations and connections. Do not ask for Follow-up questions, or future directions. Just give the response to the instruction and only the response.
-You are an AI Data Scientist focusing on identifying valuable features in datasets and uncovering high-level causal relationships between variables. Techniques to utilize: Correlation Analysis: Compute correlation coefficients for numerical columns to identify relationships. Cross-tabulation: For categorical variables, create contingency tables. Time Series Analysis: Identify trends or seasonal patterns. Combine Columns: Suggest combinations of columns to derive more meaningful features.
-"""
-NUM_PROMPTS = 5
-
-
-INITIAL_PROMPT = f"Generate {NUM_PROMPTS} (don't forget this, it must be {NUM_PROMPTS}) possible instructions for the dataset specified. Instructions should be unique and precise in nature. Each instruction should be delimited by # (dont forget this, must be # before and # after) before and after -- be concise! Each instruction should be different in nature "
-ONE_LINER = "Summarize the key findings in one sentence <= 50 characters."
-
-
-SURPRISING = {"enabled": False, "prompt": "Include a 'surprising' score from 1 to 10 at the end to indicate how if finding is boring / generic. Example format {'title': '...', 'surprising': 5}"}
-
-NUM_QUESTIONS = 3
-SUGGESTED_QUESTION_PROMPT = f"Generate {NUM_QUESTIONS} followup questions that a user might ask about the finding. The questions should focus on clarifications of difficult terms or implications of causal relationships found. Each question should be delimited by a # before and after (this is important # before and # after)"
-
-LEVEL_ONE_HALF_PROMPT = "Use the previous responses in the thread conversation in order to answer the question. Limit the response to <= 300 characters. Cite any sources or papers when referring to external concepts/ideas."
-
-LEVEL_ONE_PROMPT_SUFFIX = "Be precise with your results. Any plots should be made with matplotlib and seaborn and should have clearly defined axes and should not be convoluted by using heat maps and alpha values for appropriate graph types. Plots should use histograms for continuous values, and bar graphs for discrete plots. Aggregation of values should also be used for very volatile data values over time."
-LEVEL_TWO_PROMPT = "Combine this knowledge with links from 5 actual papers that will aim to explain these findings. For each resource found, give the name and one sentence describing how it explains the trends. Each block of resource and description should be delimited by # (dont forget this, must be # before and # after) before and after."
-
-# ----GLOBAL NON-CONST VARIABLES----
-global total_nodes, adj, node_store
-adj = [] # adjacency list for graph traversal
-node_store = [] # stores all nodes created in memory
-
-# global variable for total nodes created in session
-total_nodes = 0
-
-
-class Node:
-    def __init__(self, prompt: str, images: List[str], text: List[str], title: str, assistant_id: str, thread_id: str, parent=None):
-        """
-        Initializes a new Node. Adds the node to the adjacency list.
-
-        Args:
-        prompt (str): The initial prompt that was used to generate this node's content.
-        images (List[str]): List of URLs to images related to this node.
-        text (List[str]): List of text responses for this node.
-        title (str): The title of the node, potentially generated from a one-liner.
-        assistant_id (str): The assistant ID used for messaging.
-        thread_id (str): The thread ID used for communication.
-        parent (Node, optional): A reference to the parent node, if any. Defaults to None.
-        """
-        global total_nodes, adj, node_store
-        self.prompt = prompt
-        self.images = images
-        self.text = text
-        self.title = title
-        self.assistant_id = assistant_id
-        self.thread_id = thread_id
-        self.parent = parent  # Reference to parent node
-        self.graph_id = total_nodes
-        total_nodes += 1
-        if parent:
-            adj[parent.graph_id].append(self.graph_id)
-        adj.append([])
-        node_store.append(self)
-
-    def generate_questions(self) -> None:
-        """
-        Generates questions based on the content of the node.
-
-        This method formulates questions a user might ask about the content in this node.
-        The questions can explore different aspects like surprising findings, implications, or clarifications.
-
-        Returns:
-        List[dict]: A list of JSON objects, each representing a question.
-        """
-        response = message_and_wait_for_reply(self.assistant_id, self.thread_id, SUGGESTED_QUESTION_PROMPT)
-        suggested_questions = re.findall(r'#(.*?)#', response.text_list[0])
-        print(f"Suggested questions for {self.title}:", suggested_questions)
-
-        # Ensure only NUM_QUESTIONS are returned
-        assert(len(suggested_questions) >= NUM_QUESTIONS)
-        self.questions = suggested_questions[:NUM_QUESTIONS]
-
-    def create_level_one_half_node(self, idx):
-        """
-        Generates the response to one of the generated questions based on the context in the thread.
-
-        Returns:
-        Node: A new Node instance representing the response to the question.
-        """
-        response = message_and_wait_for_reply(self.assistant_id, self.thread_id, self.questions[idx] + LEVEL_ONE_HALF_PROMPT)
-        print(f"Response to question: {self.questions[idx]}",response.text_list[0])
-        return Node(self.questions[idx], response.image_list, response.text_list, response.text_list[0], self.assistant_id, self.thread_id, node_store[self.graph_id])
-
-    def node_json(self):
-        """
-        Converts the Node instance into a JSON-serializable dictionary.
-
-        Returns:
-        dict: A dictionary representation of the Node.
-        """
-        return {
-            "prompt": self.prompt,
-            "images": self.images,
-            "text": self.text,
-            "title": self.title,
-            "assistant_id": self.assistant_id,
-            "thread_id": self.thread_id,
-            "parent": self.parent.graph_id if self.parent else None,
-            "questions:": self.questions
-        }
-
-
 class Response:
-    def __init__(self, text_list: List[str], image_list: List[BytesIO]):
+    def __init__(self, text_list: List[str], image_list: List[str]):
         self.text_list = text_list  # List of text
         self.image_list = image_list  # List of BytesIO data
+
 
 # Search result for Exa
 class SearchResult(BaseModel):
@@ -134,35 +31,11 @@ class SearchResult(BaseModel):
     url: str
     summary: Optional[str] = None
 
+
 # Search response for Exa
 class ExaSearchResponse(BaseModel):
     results: List[SearchResult]
     total_results: int
-
-
-def save_image_temporarily(image: BytesIO):
-    """Save the image to a file with a unique ID in the format ID=DATA."""
-    image_id = str(uuid.uuid4())  # Generate a unique ID for the image
-    image_data = image.getvalue()  # Get the raw bytes from the BytesIO object
-
-    # Save to a file called 'images', appending ID=DATA format
-    with open("images.txt", "a+") as file:
-        file.write(f"{image_id}={image_data.hex()}\n")  # Save the image data in hex format
-
-    return image_id
-
-
-def generate_image_url(image_id: str):
-    """Generate a URL to access the image via the FastAPI app."""
-    return f"http://localhost:8000/image/{image_id}"
-
-
-# Example usage of saving image and generating a URL
-def handle_image(image: BytesIO):
-    # return None
-    image_id = save_image_temporarily(image)
-    image_url = generate_image_url(image_id)
-    return image_url
 
 
 def create_assistant_for_file(file: BinaryIO) -> Tuple[str, str]:
@@ -202,7 +75,7 @@ def create_assistant_for_file(file: BinaryIO) -> Tuple[str, str]:
     return assistant.id, thread.id
 
 
-def message_and_wait_for_reply(assistant_id: str, thread_id: str, message: str) -> Response:
+def _message_and_wait_for_reply(assistant_id: str, thread_id: str, message: str) -> Response:
     """
     Sends a message to the assistant in a specified thread, waits for the assistant's response,
     and returns the assistant's reply.
@@ -251,7 +124,7 @@ def message_and_wait_for_reply(assistant_id: str, thread_id: str, message: str) 
                     file_id = content.image_file.file_id
                     resp = client.files.with_raw_response.retrieve_content(file_id)
                     if resp.status_code == 200:
-                        images.append(BytesIO(resp.content))
+                        images.append(resp.content)
                 else:
                     text = content.text.value
                     texts.append(text)
@@ -261,10 +134,10 @@ def message_and_wait_for_reply(assistant_id: str, thread_id: str, message: str) 
     raise Exception(f"Failed to receive response for message: {message}")
 
 
-def parse_one_liner(one_liner, node):
+def _parse_one_liner(one_liner, node):
     try:
         formatted_one_liner = re.sub(r'(\w+):', r'"\1":', one_liner[0])  # Add quotes around keys
-        formatted_one_liner = re.sub(r':(\w+)', r':"\1"', formatted_one_liner) # Add quotes around values
+        formatted_one_liner = re.sub(r':(\w+)', r':"\1"', formatted_one_liner)  # Add quotes around values
         one_liner_object = json.loads(one_liner)
         node["title"] = one_liner_object["title"]
         if one_liner_object["surprising"] <= 2:
@@ -275,57 +148,77 @@ def parse_one_liner(one_liner, node):
         if surprising_match and int(surprising_match.group(1)) <= 2:
             return None
 
-# Function to process each prompt (run in parallel)
-def process_prompt_multiprocess(prompt, assistant_id, thread_id):
-    node = {
-        "prompt": prompt,
-        "images": None,
-        "text": None,
-        "title": None,
-        "questions": None
-    }
 
-    response = message_and_wait_for_reply(assistant_id, thread_id, prompt)
-    node["images"] = [handle_image(image) for image in response.image_list]
-    node["text"] = response.text_list
+def _l1_create_node(hub: Hub, thread_id: str, prompt: str, db: Session = next(get_db())):
+    # Process the prompt for the new node
+    response = _message_and_wait_for_reply(hub.assistant_id, thread_id, prompt)
+    text = "\n".join(response.text_list)
+
+    # Determine the concise title of the node
     one_liner_prompt = ONE_LINER
     if SURPRISING.get("enabled"):
         one_liner_prompt += SURPRISING.get("prompt")
-    one_liner_response =  message_and_wait_for_reply(assistant_id, thread_id, one_liner_prompt).text_list
-    # Use raw text as the title if JSON parsing fails
-    if SURPRISING.get("enabled"):
-        parse_one_liner(one_liner_response, node)
-    else:
-        node["title"] = one_liner_response[0]
-    node["assistant_id"] = assistant_id
-    node["thread_id"] = thread_id
+    title = _message_and_wait_for_reply(hub.assistant_id, thread_id, one_liner_prompt).text_list[0]
 
-    #------ TEMPORARY CODE FOR TESTING -----
-    # testing question generating
-    l1_node = Node(prompt, node["images"], node["text"], node["title"], assistant_id, thread_id)
-    l1_node.generate_questions()
-    node["questions"] = l1_node.questions
-    for idx in range(NUM_QUESTIONS):
-        print(l1_node.create_level_one_half_node(idx))
-    # test out new level_two node
-    # create_level_two_node(node)
-    return node
+    # Create the base of the Node in DB
+    new_node = Node(
+        prompt=prompt,
+        text=text,
+        title=title,
+        thread_id=thread_id,
+        hub_id=hub.id
+    )
+
+    # Process the images (if any) for the Node
+    images = []
+    for image_data in response.image_list:
+        # Create the image object
+        image = Image(data=image_data)
+
+        # Add the image to the session so it gets an id upon commit
+        db.add(image)
+
+        # Commit to generate the ID and get the URL
+        db.commit()
+        db.refresh(image)  # Ensure the ID is generated
+
+        # Generate the URL based on the image ID
+        image.generate_url()
+
+        # Commit again to save the URL
+        db.commit()
+
+        # Append the image to the new_node's images relationship
+        new_node.images.append(image)
+        images.append(image)  # Optionally collect them for further processing
+
+    # Get interesting questions for a given Node (if any)
+    response = _message_and_wait_for_reply(hub.assistant_id, thread_id, SUGGESTED_QUESTION_PROMPT)
+    suggested_questions = re.findall(r'#(.*?)#', response.text_list[0])
+    for question_text in suggested_questions:
+        question = Question(content=question_text)  # Create a Question object
+        new_node.questions.append(question)  # Associate the question with the node
+
+    # Save Node to DB
+    db.add(new_node)
+    db.commit()
 
 
-def initiate_level_one_multiprocess(
-        file: BinaryIO = open(os.path.join(os.path.dirname(__file__), 'usa_rain_prediction.csv'), "rb")):
-    assistant_id, thread_id = create_assistant_for_file(file)
-    response = message_and_wait_for_reply(assistant_id, thread_id, INITIAL_PROMPT)
+def l1_init(hub: Hub, initial_thread: str):
+    # Determine the five initial prompts per node
+    response = _message_and_wait_for_reply(hub.assistant_id, initial_thread, INITIAL_PROMPT)
     next_prompts = re.findall(r'#(.*?)#', response.text_list[0])
-    prompts_with_threads = [(prompt + LEVEL_ONE_PROMPT_SUFFIX + prompt, client.beta.threads.create().id) for prompt in next_prompts]
-    print(prompts_with_threads)
-    # Run each prompt in parallel using multiprocessing
-    with multiprocessing.Pool() as pool:
-        level_one_nodes = pool.starmap(process_prompt_multiprocess,
-                                       [(prompt, assistant_id, thread_id) for prompt, thread_id in
-                                        prompts_with_threads])
 
-    return json.dumps(level_one_nodes)
+    # Extract and create threads per node
+    prompts_with_threads = [(prompt + LEVEL_ONE_PROMPT_SUFFIX + prompt, client.beta.threads.create().id) for prompt in
+                            next_prompts]
+
+    # Run each l1 node creation in parallel
+    with multiprocessing.Pool() as pool:
+        pool.starmap(_l1_create_node, [
+            (hub, thread_id, prompt) for prompt, thread_id in prompts_with_threads
+        ])
+
 
 # Old level two prompting
 # def create_level_two_node(prev_node):
@@ -336,16 +229,15 @@ def initiate_level_one_multiprocess(
 #     return text_results
 
 # New level two prompting using Exa
-def create_level_two_node(prev_node):
-    
+def create_level_two_node(prev_node: Node):
     # Use the findings from level one to prompt OpenAI for a query that Exa can use, and incorporate Exa prompt guidelines for better query formulation
     level_two_prompt = (
-        f"""Our findings about {prev_node['title']} suggest the following trends: 
-        {prev_node['text']}. Now, use create an exa query that used this information.
+        f"""Our findings about {prev_node.title} suggest the following trends: 
+        {prev_node.text}. Now, use create an exa query that used this information.
 
         Include only relevant academic papers or trusted sources. Focus on journals or articles that delve into statistical analyses or provide clear empirical evidence.
         
-        Example prompt: "Here's a great article on the relationship between {prev_node['title']} and its long-term implications:".
+        Example prompt: "Here's a great article on the relationship between {prev_node.title} and its long-term implications:".
 
         Use the following guide to help craft a prompt as well:
         1. Phrase as Statements: "Here's a great article about X:" works better than "What is X?"
@@ -355,7 +247,7 @@ def create_level_two_node(prev_node):
     )
 
     # Send this prompt to OpenAI to generate a search query for Exa
-    generated_query = message_and_wait_for_reply(prev_node["assistant_id"], prev_node["thread_id"], level_two_prompt)
+    generated_query = _message_and_wait_for_reply(prev_node["assistant_id"], prev_node["thread_id"], level_two_prompt)
 
     # Parse the generated search query
     search_query = generated_query.text_list[0]  # (Assuming first response contains the search query)
@@ -391,14 +283,11 @@ def exa_search(query: str) -> ExaSearchResponse:
     return ExaSearchResponse(results=formatted_results, total_results=len(raw_results.results))
 
 
-
-
 if __name__ == '__main__':
-    level_one_nodes = initiate_level_one_multiprocess()
-    print(json.dumps(level_one_nodes))
-
-
-    for node in level_one_nodes:
-        result = create_level_two_node(node)
-        print(result)
-
+    print()
+    # level_one_nodes = initiate_level_one_multiprocess()
+    #print(json.dumps(level_one_nodes))
+    #
+    #for node in level_one_nodes:
+    #    result = create_level_two_node(node)
+    #    print(result)
