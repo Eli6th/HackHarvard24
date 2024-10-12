@@ -7,3 +7,4 @@ datasets
 usa_rain_prediction.csv
 
 test.db
+__pycache__
