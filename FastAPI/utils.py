@@ -18,6 +18,8 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 exa = Exa(api_key=os.getenv("EXA_API_KEY"))
 
+L2_OUTPUT = 3
+
 
 class Response:
     def __init__(self, text_list: List[str], image_list: List[str]):
@@ -158,6 +160,7 @@ def _l1_create_node(hub: Hub, thread_id: str, prompt: str, db: Session = next(ge
     one_liner_prompt = ONE_LINER
     if SURPRISING.get("enabled"):
         one_liner_prompt += SURPRISING.get("prompt")
+
     title = _message_and_wait_for_reply(hub.assistant_id, thread_id, one_liner_prompt).text_list[0]
 
     # Create the base of the Node in DB
@@ -219,15 +222,6 @@ def l1_init(hub: Hub, initial_thread: str):
             (hub, thread_id, prompt) for prompt, thread_id in prompts_with_threads
         ])
 
-
-# Old level two prompting
-# def create_level_two_node(prev_node):
-#     print(prev_node)
-#     prompt = f"Our findings about title={prev_node['title']}: {prev_node['text']}. {LEVEL_TWO_PROMPT}"
-#     text_results = message_and_wait_for_reply(prev_node["assistant_id"], prev_node["thread_id"], prompt).text_list
-#     print("Results: ",text_results)
-#     return text_results
-
 # New level two prompting using Exa
 def create_level_two_node(prev_node: Node):
     # Use the findings from level one to prompt OpenAI for a query that Exa can use, and incorporate Exa prompt guidelines for better query formulation
@@ -235,7 +229,7 @@ def create_level_two_node(prev_node: Node):
         f"""Our findings about {prev_node.title} suggest the following trends: 
         {prev_node.text}. Now, use create an exa query that used this information.
 
-        Include only relevant academic papers or trusted sources. Focus on journals or articles that delve into statistical analyses or provide clear empirical evidence.
+        Include only relevant trusted sources. Focus on journals or articles that delve into statistical analyses or provide clear empirical evidence.
         
         Example prompt: "Here's a great article on the relationship between {prev_node.title} and its long-term implications:".
 
@@ -252,24 +246,23 @@ def create_level_two_node(prev_node: Node):
     # Parse the generated search query
     search_query = generated_query.text_list[0]  # (Assuming first response contains the search query)
 
-    print(search_query)
+    # print(search_query)
 
     # Use the search query to call Exa's search function and fetch relevant papers
     search_results = exa_search(query=search_query)
 
+    print(search_results)
     return search_results
 
 
 # Define exa search function
 def exa_search(query: str) -> ExaSearchResponse:
     # Perform the Exa search (assumed to return a list of dicts or similar)
-    raw_results = exa.search_and_contents(query=query, type='auto', highlights=True)
+    raw_results = exa.search_and_contents(query=query, type='auto', summary=True, num_results=L2_OUTPUT)
 
-    print("RAW RESULTS ARE:")
-    print(type(raw_results))
+    # print("RAW RESULTS ARE:")
 
     print(raw_results)
-    print(dir(raw_results))
     # Example of how you would format the results into the Pydantic model
     formatted_results = [
         SearchResult(
@@ -284,10 +277,4 @@ def exa_search(query: str) -> ExaSearchResponse:
 
 
 if __name__ == '__main__':
-    print()
-    # level_one_nodes = initiate_level_one_multiprocess()
-    #print(json.dumps(level_one_nodes))
-    #
-    #for node in level_one_nodes:
-    #    result = create_level_two_node(node)
-    #    print(result)
+  return
