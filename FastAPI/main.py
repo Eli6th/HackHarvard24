@@ -95,31 +95,18 @@ async def runfull():
     thread.start()
 
 def run_utils_main():
-    level_one_nodes = initiate_level_one_multiprocess()
-    level_one_nodes = json.loads(level_one_nodes)
-    for node in level_one_nodes:
-        response = create_level_two_node(node)
-        print(f"For node {node['title']} generated with prompt {node['prompt']}, we receive the following results:")
-        for result in response.results:
-            print(result)
-            # print(result.title)
-            # print(result.url)
-            # print(result.summary)
-            print()
-
-
-@app.get("/image/{image_id}")
-async def get_image(image_id: str):
-    # Fetch the image buffer from the storage using the image ID
-    image_buffer = read_image_from_file(image_id)
-    if image_buffer:
-        return Response(content=image_buffer.getvalue(), media_type="image/png")
-    return None
-    #level_one_nodes = initiate_level_one_multiprocess()
-    #level_one_nodes = json.loads(level_one_nodes)
-    #for node in level_one_nodes:
-    #    result = create_level_two_node(node)
-    #    print(result)
+    # level_one_nodes = initiate_level_one_multiprocess()
+    # level_one_nodes = json.loads(level_one_nodes)
+    # for node in level_one_nodes:
+    #     response = create_level_two_node(node)
+    #     print(f"For node {node['title']} generated with prompt {node['prompt']}, we receive the following results:")
+    #     for result in response.results:
+    #         print(result)
+    #         # print(result.title)
+    #         # print(result.url)
+    #         # print(result.summary)
+    #         print()
+    return
 
 
 @app.get("/images/{image_id}")

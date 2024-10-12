@@ -6,3 +6,4 @@ pillow
 exa_py
 rich
 python-multipart
+SQLAlchemy

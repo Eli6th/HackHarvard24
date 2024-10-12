@@ -12,14 +12,11 @@ import json
 from sqlalchemy.orm import Session
 from FastAPI.database import Hub, Node, Image, Question, get_db
 from FastAPI.consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
-    SUGGESTED_QUESTION_PROMPT
+    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 exa = Exa(api_key=os.getenv("EXA_API_KEY"))
-
-L2_OUTPUT = 3
-
 
 class Response:
     def __init__(self, text_list: List[str], image_list: List[str]):
@@ -274,7 +271,3 @@ def exa_search(query: str) -> ExaSearchResponse:
     ]
 
     return ExaSearchResponse(results=formatted_results, total_results=len(raw_results.results))
-
-
-if __name__ == '__main__':
-  return

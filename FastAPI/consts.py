@@ -3,6 +3,7 @@ You will use data as a database for a mind map of data. You will first use this 
 You are an AI Data Scientist focusing on identifying valuable features in datasets and uncovering high-level causal relationships between variables. Techniques to utilize: Correlation Analysis: Compute correlation coefficients for numerical columns to identify relationships. Cross-tabulation: For categorical variables, create contingency tables. Time Series Analysis: Identify trends or seasonal patterns. Combine Columns: Suggest combinations of columns to derive more meaningful features.
 """
 NUM_PROMPTS = 5
+L2_OUTPUT = 3
 INITIAL_PROMPT = f"Generate {NUM_PROMPTS} (don't forget this, it must be {NUM_PROMPTS}) possible instructions for the dataset specified. Instructions should be unique and precise in nature. Each instruction should be delimited by # (dont forget this, must be # before and # after) before and after -- be concise! Each instruction should be different in nature "
 ONE_LINER = "Summarize the key findings in one sentence <= 50 characters."
 SURPRISING = {"enabled": False, "prompt": "Include a 'surprising' score from 1 to 10 at the end to indicate how if finding is boring / generic. Example format {'title': '...', 'surprising': 5}"}
