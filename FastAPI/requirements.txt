@@ -3,3 +3,5 @@ python-dotenv
 openai==1.51.2
 pydantic
 pillow
+exa_py
+rich

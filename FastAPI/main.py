@@ -4,7 +4,9 @@ from PIL import Image
 import uvicorn
 import os
 import uuid
-from utils import initiate_level_one_multiprocess
+from utils import initiate_level_one_multiprocess, create_level_two_node
+import threading
+import json
 
 app = FastAPI()
 
@@ -13,6 +15,19 @@ app = FastAPI()
 @app.get("/start")
 async def start():
     return Response(content=initiate_level_one_multiprocess(), media_type="application/json")
+
+@app.get("/runfull")
+async def runfull():
+    thread = threading.Thread(target=run_utils_main)
+    thread.start()
+
+def run_utils_main():
+    level_one_nodes = initiate_level_one_multiprocess()
+    level_one_nodes = json.loads(level_one_nodes)
+    for node in level_one_nodes:
+        result = create_level_two_node(node)
+        print(result)
+
 
 @app.get("/image/{image_id}")
 async def get_image(image_id: str):
