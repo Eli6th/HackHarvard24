@@ -5,6 +5,6 @@ venv/*
 images.txt
 datasets
 usa_rain_prediction.csv
-
+*.db
 test.db
 __pycache__
