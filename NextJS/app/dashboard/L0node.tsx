@@ -169,8 +169,7 @@ export default memo(L0Node);
 //           padding: 10,
 //           fontSize: 12,
 //           borderRadius: 10,
-//           minWidth: 150,
-//           maxWidth: 350,
+//           minWidth: "auto",
 //           transition: 'border-width 0.1s ease',
 //         }}
 //       >
@@ -181,24 +180,27 @@ export default memo(L0Node);
 //           </Button>
 //         </div>
 
+//         {/* Scrollable content with forced scrollbars */}
 //         <div
+//           className="flex flex-row gap-2 border border-white rounded-lg p-2"
 //           style={{
 //             marginTop: 5,
-//             maxWidth: '350px',
-//             maxHeight: '200px', // You can adjust the height as needed
-//             overflowX: 'auto',
-//             overflowY: 'auto',
-//             whiteSpace: 'nowrap' // Ensures that items stay in one line for horizontal scrolling
+//             maxHeight: '200px',
+//             minWidth: 'auto',
+//             overflowX: 'auto',  // Enable horizontal scroll
+//             overflowY: 'auto',  // Enable vertical scroll
+//             whiteSpace: 'nowrap',  // Prevent text wrapping, enabling horizontal scrolling
 //           }}
-//           className="border border-white rounded-lg p-2"
 //         >
 //           <div className="inline-flex gap-2">
 //             {data.data.map((item) => (
-//               <div key={item.title} className="flex flex-col gap-2 min-w-[150px]"> {/* Setting min width for each column */}
+//               <div key={item.title} className="flex flex-col gap-2 min-w-[150px]">
 //                 <TypographyH4>{item.title}</TypographyH4>
-//                 {item.rows.map((row, index) => (
-//                   <p key={index} className="text-lg">{row}</p>
-//                 ))}
+//                 <div style={{ minWidth: 'auto' }}>
+//                   {item.rows.map((row, index) => (
+//                     <p key={index} className="text-lg">{row}</p>
+//                   ))}
+//                 </div>
 //               </div>
 //             ))}
 //           </div>
