@@ -12,7 +12,7 @@ export default async function Navbar({ className, ...props }: React.HTMLAttribut
     <nav className={cn("flex items-center space-x-4 lg:space-x-6", className)} {...props}>
       {user ? (
         <Link href="/dashboard" className="text-sm font-medium transition-colors">
-          Dashboard
+          Query on Reality
         </Link>
       ) : (
         <Link href="/" className="text-sm font-medium transition-colors">

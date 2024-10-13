@@ -9,6 +9,7 @@ import {
 } from 'reactflow';
 import { Icons } from '@/components/icons';
 import ReactMarkdown from 'react-markdown';
+import AskQuestionButton from "./addquestion"
 
 function L1Node({ data }: NodeProps<{
   title: string;
@@ -22,9 +23,8 @@ function L1Node({ data }: NodeProps<{
   }[];
   images?: string[];
   id: string,
-  addAdditionalNode: (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => Promise<void>;
+  addAdditionalNode: (parent_node_id: string, level: string, question: { id: string; content: string } | undefined, prompt: string | undefined) => Promise<void>;
 }>) {
-  console.log(data.images)
   const [isExpanded, setIsExpanded] = useState<boolean>(data.expanded);
   const [openQuestions, setOpenQuestions] = useState<boolean>(false);
   const MarkdownRenderer = (markdownText: string) => {
@@ -52,7 +52,7 @@ function L1Node({ data }: NodeProps<{
       >
         <TypographyH3>{data.title}</TypographyH3>
         <div style={{ marginTop: 5 }}>
-          {data.text.length > 100 ? `${data.text.substring(0, 100)}...` : data.text}
+          {MarkdownRenderer(data.text.length > 100 ? `${data.text.substring(0, 100)}...` : data.text)}
         </div>
         <Handle type={data.edgePoints[0] ? 'source' : 'target'} position={Position.Left} id="left" />
         <Handle type={data.edgePoints[1] ? 'source' : 'target'} position={Position.Bottom} id="bottom" />
@@ -72,7 +72,7 @@ function L1Node({ data }: NodeProps<{
               variant="ghost"
               className="absolute -right-12 top-11 rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
               style={{ height: '40px', width: '40px' }}
-              onClick={() => setIsExpanded(true)}
+              onClick={() => data.addAdditionalNode(data.id, "L2", undefined)}
             >
               <Icons.search size={24} className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5" />
             </Button>
@@ -109,26 +109,17 @@ function L1Node({ data }: NodeProps<{
                   onClick={() => {
                     data.addAdditionalNode(data.id, "L1", question);
                     data.questions = data.questions.filter(_question => _question.id !== question.id);
+                    setOpenQuestions(false);
                   }}
                 >
                   {question.content}
                 </Button>
               );
             })}
-            <Button
-              style={{
-                zIndex: 100,
-                position: 'absolute',
-                top: `calc(50% + ${Math.sin(((data.questions.length) / (data.questions.length + 2)) * 2 * Math.PI) * 250 * 0.5}px)`,
-                left: `calc(50% + ${Math.cos(((data.questions.length) / (data.questions.length + 2)) * 2 * Math.PI) * 250 * 1.25}px)`,
-                transform: 'translate(-50%, -50%)',
-                width: '200px',
-              }}
-              variant="ghost"
-              className="text-xs text-gray-800 bg-[#F9F6F0] min-w-[100px] hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
-            >
-              + Ask your own question
-            </Button>
+            <AskQuestionButton submitQuestionFunc={(prompt) => {
+              data.addAdditionalNode(data.id, "L1", undefined, prompt);
+              setOpenQuestions(false);
+            }} data={data} />
             <Button
               style={{
                 zIndex: 100,

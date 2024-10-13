@@ -4,6 +4,7 @@ import uuid
 from io import BytesIO
 from typing import BinaryIO, List, Optional
 from uuid import UUID
+from pydantic import BaseModel
 
 import uvicorn
 from database import (Hub, Image, Node, NodeResponse, Question, Session,
@@ -13,7 +14,7 @@ from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as _Session
 from utils import (ExaSearchResponse, create_assistant_for_file, get_db,
-                   l1_init, l2_init, create_level_one_half_node)
+                   l1_init, l2_init, create_level_one_half_node, create_level_one_half_node_prompted)
 
 app = FastAPI()
 
@@ -102,6 +103,24 @@ async def answer_question(question_id: str, db: _Session = Depends(get_db)):
     new_node = create_level_one_half_node(question, prev_node)
     return new_node
 
+
+class QuestionRequest(BaseModel):
+    prompt: str
+@app.post("/question/from/{node_id}", response_model=NodeResponse)
+async def answer_question(node_id: str, request: QuestionRequest, db: _Session = Depends(get_db)):
+    """
+    Get the question and answer for a specific node.
+    """
+
+    prompt = request.prompt
+
+    prev_node = db.query(Node).filter(Node.id == node_id).first()
+    if not prev_node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    new_node = create_level_one_half_node_prompted(prompt, prev_node)
+    return new_node
+
 @app.get("/hubs/{hub_id}/nodes", response_model=List[NodeResponse])
 async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     """
@@ -124,13 +143,13 @@ async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     # Serialize and return the nodes
     return nodes
 
-@app.post("/l2nodes", response_model=List[NodeResponse])
+@app.get("/l2nodes/{l1_node_id}", response_model=List[NodeResponse])
 async def create_level_two_node(l1_node_id: str, db: _Session = Depends(get_db)):
     """
     Create a new level two node and return the response.
     """
     # Retrieve the L1 node from the database
-    l1_node = db.query(Node).get(Node.id == l1_node_id)
+    l1_node = db.get(Node, l1_node_id)
 
     # FOR DEBUGGING:
     # l1_node = db.query(Node).filter(Node.parent_node_id == None).first()
