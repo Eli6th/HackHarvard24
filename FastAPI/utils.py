@@ -11,8 +11,8 @@ from typing import BinaryIO, Tuple, List, Optional
 import json
 from sqlalchemy.orm import Session
 
-from database import Hub, Node, Image, Question, get_db
-from consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
+from .database import Hub, Node, Image, Question, get_db
+from .consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
     SUGGESTED_QUESTION_PROMPT, L2_OUTPUT, DELIMITER, RETRIES
 
 load_dotenv()

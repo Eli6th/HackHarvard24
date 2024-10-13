@@ -1,5 +1,4 @@
 import json
-from utils import ExaSearchResponse
 import threading
 import uuid
 from io import BytesIO
@@ -7,7 +6,7 @@ from typing import BinaryIO, List, Optional
 from uuid import UUID
 
 import uvicorn
-from database import (Hub, Image, Node, NodeResponse, Session,
+from .database import (Hub, Image, Node, NodeResponse, Session,
                       create_db_and_tables)
 from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
                      HTTPException, Response, UploadFile)
@@ -15,8 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as _Session
 
 
-from utils import l1_init, create_assistant_for_file, create_level_two_node, get_db, ExaSearchResponse, create_level_one_half_node
-from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image, Question
+from .utils import l1_init, create_assistant_for_file, create_level_two_node, get_db, ExaSearchResponse, create_level_one_half_node
+from .database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image, Question
 
 app = FastAPI()
 
