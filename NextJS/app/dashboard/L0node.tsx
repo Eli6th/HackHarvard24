@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { TypographyH4 } from '@/components/ui/typography';
+import { TypographyH4, TypographyH3 } from '@/components/ui/typography';
 import React, { memo, useEffect, useState } from 'react';
 import {
   Handle,
@@ -37,7 +37,7 @@ function L0Node({ data }: NodeProps<{
           transition: 'border-width 0.1s ease',
         }}
       >
-        <TypographyH4>{data.title}</TypographyH4>
+        <TypographyH3>{data.title}</TypographyH3>
         {data.isHighlighted && (
           <Button
             variant="ghost"
@@ -51,8 +51,8 @@ function L0Node({ data }: NodeProps<{
 
         <Handle type={'source'} position={Position.Left} id="left" />
         <Handle type={'source'} position={Position.Bottom} id="bottom" />
-        <Handle type={'source'} position={Position.Right} id="right-target" />
-        <Handle type={'source'} position={Position.Top} id="top-target" />
+        <Handle type={'source'} position={Position.Right} id="right" />
+        <Handle type={'source'} position={Position.Top} id="top" />
       </div>
     );
   }
@@ -72,17 +72,17 @@ function L0Node({ data }: NodeProps<{
         }}
       >
         <div className="flex justify-between">
-          <TypographyH4>{data.title}</TypographyH4>
+          <TypographyH3>{data.title}</TypographyH3>
           <Button variant="ghost" className="rounded-full text-[#fff] font-extrabold hover:bg-[#B36A5E] hover:text-[#fff]" onClick={() => setIsExpanded(false)}>
             <Icons.close size={24} className="w-5 h-5 mb-3" />
           </Button>
         </div>
-        <div style={{ marginTop: 5 }} className="flex flex-row gap-2 border-1 border-white">
+        <div style={{ marginTop: 5 }} className="flex flex-row gap-2 border border-white rounded-lg p-2">
           {data.data.map((item) => (
             <div key={item.title} className="flex flex-col gap-2">
-              <h4 key={item.title}>{item.title}</h4>
+              <TypographyH4 key={item.title}>{item.title}</TypographyH4>
               {item.rows.map((row) => (
-                <p key={row}>{row}</p>
+                <p key={row} className="text-lg">{row}</p>
               ))}
             </div>
           ))}
@@ -90,8 +90,8 @@ function L0Node({ data }: NodeProps<{
 
         <Handle type={'source'} position={Position.Left} id="left" />
         <Handle type={'source'} position={Position.Bottom} id="bottom" />
-        <Handle type={'source'} position={Position.Right} id="right-target" />
-        <Handle type={'source'} position={Position.Top} id="top-target" />
+        <Handle type={'source'} position={Position.Right} id="right" />
+        <Handle type={'source'} position={Position.Top} id="top" />
       </div>
     </div>
   );

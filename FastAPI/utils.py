@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from database import Hub, Node, Image, Question, get_db
 from consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
-    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT, DELIMITER
+    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT, DELIMITER, RETRIES
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -95,41 +95,43 @@ def _message_and_wait_for_reply(assistant_id: str, thread_id: str, message: str)
         role="user",
         content=message
     )
+    tries = 0
+    while tries < RETRIES:
+        tries += 1
 
-    # Run the assistant and wait for the response
-    run = client.beta.threads.runs.create_and_poll(
-        thread_id=thread_id,
-        assistant_id=assistant_id,
-    )
-
-    # Check if the run is completed and fetch the messages
-    if run.status == 'completed':
-        # Retrieve the list of messages from the thread
-        messages_page = client.beta.threads.messages.list(
+        # Run the assistant and wait for the response
+        run = client.beta.threads.runs.create_and_poll(
             thread_id=thread_id,
-            order="asc"
+            assistant_id=assistant_id,
         )
+        # Check if the run is completed and fetch the messages
+        if run.status == 'completed':
+            # Retrieve the list of messages from the thread
+            messages_page = client.beta.threads.messages.list(
+                thread_id=thread_id,
+                order="asc"
+            )
 
-        # Convert the SyncCursorPage object to a list
-        messages = list(messages_page)
+            # Convert the SyncCursorPage object to a list
+            messages = list(messages_page)
 
-        # Return the last message content (assuming the assistant's reply is the last one)
-        if messages:
-            contents = messages[-1].content
-            images = []
-            texts = []
+            # Return the last message content (assuming the assistant's reply is the last one)
+            if messages:
+                contents = messages[-1].content
+                images = []
+                texts = []
 
-            for content in contents:
-                if hasattr(content, "image_file"):
-                    file_id = content.image_file.file_id
-                    resp = client.files.with_raw_response.retrieve_content(file_id)
-                    if resp.status_code == 200:
-                        images.append(resp.content)
-                else:
-                    text = content.text.value
-                    texts.append(text)
+                for content in contents:
+                    if hasattr(content, "image_file"):
+                        file_id = content.image_file.file_id
+                        resp = client.files.with_raw_response.retrieve_content(file_id)
+                        if resp.status_code == 200:
+                            images.append(resp.content)
+                    else:
+                        text = content.text.value
+                        texts.append(text)
 
-            return Response(text_list=texts, image_list=images)
+                return Response(text_list=texts, image_list=images)
 
     raise Exception(f"Failed to receive response for message: {message}")
 
