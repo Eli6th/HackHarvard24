@@ -289,6 +289,8 @@ const flowKey = 'flow';
 
 
 function FlowCanvas() {
+  const [l0NodeId, setL0NodeId] = useState<string | null>(null); // State to track the L0Node ID
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null); // Track upload status
 
@@ -296,8 +298,8 @@ function FlowCanvas() {
   const populatedNodeIds = useRef<Set<string>>(new Set()); // Keep track of populated nodes
   const usedItemIds = useRef<Set<string>>(new Set()); // Track used item ids
 
-  const [tableData, setTableData] = useState<any[]>([]);
-  const [fileData, setFileData] = useState<any[]>([]);
+  const [tableData, setTableData] = useState<any>();
+  const [file, setFile] = useState<File | null>(null); // State to store the uploaded file
 
 
   const triggerFileInput = () => {
@@ -387,12 +389,26 @@ function FlowCanvas() {
     }
   }, [setNodes]);
 
+  const transformTableDataForL0Node = (tableData) => {
+    if (!tableData || tableData.length === 0) return [];
+
+    // Get the column names from the first row
+    const columns = Object.keys(tableData[0]);
+
+    // Map over the columns to create the structure expected by createL0Node
+    return columns.map((col) => ({
+      title: col,
+      rows: tableData.map((row) => row[col]) // Extract the values for each column
+    }));
+  };
+
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
       setUploadSuccess(null);
+      setFile(file);
       populatedNodeIds.current.clear(); // Clear previous populated node tracking
 
       Papa.parse(file, {
@@ -431,6 +447,7 @@ function FlowCanvas() {
         await pollHubNodes(sessionResponse.hub); // Start polling for the hub's nodes
         setNodes([l0Node, ...initialNodes]);
         setEdges([...initialEdges]);
+        setL0NodeId(l0Node.id);
 
 
         setUploadSuccess(true);
@@ -444,26 +461,30 @@ function FlowCanvas() {
 
   // Listen for changes in tableData and trigger node creation when new tableData is available
   useEffect(() => {
-    if (tableData.length > 0) {  // Check if tableData has any rows
-      (async () => {
-        try {
-          const sessionResponse: SessionResponse = await createSession('http://localhost:8001/session/start', file); // Ensure 'file' is the uploaded file
-          const l0Node = createL0Node({
-            id: sessionResponse.hub,
-            title: 'Uploaded CSV',
-            data: tableData, // Pass the updated tableData
-          });
+    if (tableData?.length > 0 && l0NodeId) {  // Check if tableData has any rows and if the L0 node already exists
 
-          const { nodes: initialNodes, edges: initialEdges } = generateL1NodesAndEdges(l0Node, testData);
-          setNodes([l0Node, ...initialNodes]);
-          setEdges(initialEdges);
-          await pollHubNodes(sessionResponse.hub);
-        } catch (error) {
-          setUploadSuccess(false);
-        }
-      })();
+      const transformedData = transformTableDataForL0Node(tableData); // Transform the data
+
+      console.log("Transformed table data: ", transformedData);
+
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === l0NodeId) {
+            console.log("Current node.data before update:", node.data);
+
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                data: transformedData, // Update only the tableData for the existing L0 node
+              },
+            };
+          }
+          return node;
+        })
+      );
     }
-  }, [tableData, pollHubNodes, setNodes, setEdges]);  // Ensure the effect runs when tableData updates
+  }, [tableData, setNodes, l0NodeId]);  // Ensure this runs only when tableData updates and l0NodeId exists
 
   const onConnect = useCallback(
     (params: Connection) =>
