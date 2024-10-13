@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 
 from .database import Hub, Node, Image, Question, get_db
 from .consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
-    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT, DELIMITER, RETRIES
+    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT, DELIMITER, RETRIES, LEVEL_ONE_HALF_PROMPT
+
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -49,6 +50,7 @@ def create_assistant_for_file(file: BinaryIO) -> Tuple[str, str]:
     Returns:
     Tuple[str, str]: A tuple containing the thread ID and assistant ID.
     """
+
 
     # Upload the file
     uploaded_file = client.files.create(
@@ -151,6 +153,22 @@ def _parse_one_liner(one_liner, node):
             return None
 
 
+ # Get interesting questions for a given Node (if any)
+def _generate_questions(node: Node, assistant_id: str, thread_id: str):
+    response = _message_and_wait_for_reply(assistant_id, thread_id, SUGGESTED_QUESTION_PROMPT)
+    suggested_questions = re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0])
+    for question_text in suggested_questions:
+        question = Question(content=question_text)  # Create a Question object
+        node.questions.append(question)  # Associate the question with the node
+
+def _generate_title(assistant_id: str, thread_id: str):
+    # Determine the concise title of the node
+    one_liner_prompt = ONE_LINER
+    if SURPRISING.get("enabled"):
+        one_liner_prompt += SURPRISING.get("prompt")
+    title = _message_and_wait_for_reply(assistant_id, thread_id, one_liner_prompt).text_list[0]
+    return title
+
 def _l1_create_node(hub: Hub, thread_id: str, prompt: str, db: Session = next(get_db())):
     # Process the prompt for the new node
     response = _message_and_wait_for_reply(hub.assistant_id, thread_id, prompt)
@@ -195,12 +213,7 @@ def _l1_create_node(hub: Hub, thread_id: str, prompt: str, db: Session = next(ge
         new_node.images.append(image)
         images.append(image)  # Optionally collect them for further processing
 
-    # Get interesting questions for a given Node (if any)
-    response = _message_and_wait_for_reply(hub.assistant_id, thread_id, SUGGESTED_QUESTION_PROMPT)
-    suggested_questions = re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0])
-    for question_text in suggested_questions:
-        question = Question(content=question_text)  # Create a Question object
-        new_node.questions.append(question)  # Associate the question with the node
+    _generate_questions(new_node, hub.assistant_id, thread_id)
 
     # Save Node to DB
     db.add(new_node)
@@ -222,8 +235,79 @@ def l1_init(hub: Hub, initial_thread: str):
             (hub, thread_id, prompt) for prompt, thread_id in prompts_with_threads
         ])
 
-# New level two prompting using Exa
-def create_level_two_node(prev_node: Node):
+def create_level_one_half_node(question: Question, node: Node, db: Session = next(get_db())):
+    prompt = question.content + LEVEL_ONE_HALF_PROMPT
+    response = _message_and_wait_for_reply(node.hub.assistant_id, node.thread_id, prompt)
+    title = _generate_title(node.hub.assistant_id, node.thread_id)
+
+    new_thread = client.beta.threads.create()
+
+    new_node = Node(
+        prompt=prompt,
+        text=response.text_list[0],
+        title=title,
+        thread_id=new_thread.id,
+        hub_id=node.hub.assistant_id,
+
+    )
+    _generate_questions(new_node, node.hub.assistant_id, node.thread_id)
+
+    # Save Node to DB
+    db.add(new_node)
+    db.commit()
+    return new_node
+
+# Define exa search function
+def exa_search(query: str) -> ExaSearchResponse:
+    # Perform the Exa search (assumed to return a list of dicts or similar)
+    raw_results = exa.search_and_contents(query=query, type='auto', summary=True, num_results=L2_OUTPUT)
+
+    # Example of how you would format the results into the Pydantic model
+    formatted_results = [
+        SearchResult(
+            title=result.title,
+            url=result.url,
+            summary=result.summary
+        )
+        for result in raw_results.results
+    ]
+
+    return ExaSearchResponse(results=formatted_results, total_results=len(raw_results.results))
+
+# Create L2 node
+def _l2_create_node(hub: Hub, thread_id: str, prompt: str, parent_node: Node, db: Session = next(get_db())):
+    
+    # Create the unified contextual summary with title
+    response = _message_and_wait_for_reply(hub.assistant_id, thread_id, prompt)
+    summary, title = tuple(re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0]))
+    # print(f"For the following prompt: {prompt}\nTitle: {title}\nSummary: {summary}\n\n\n")
+
+    # Create the base of the Node in DB
+    new_node = Node(
+        prompt=prompt,
+        text=summary,
+        title=title,
+        thread_id=thread_id,
+        hub_id=hub.id,
+        parent_node_id=parent_node.id
+    )
+
+    # TODO: Stretch goal would be to add questions so someone could do more layers
+
+    # Save Node to DB
+    db.add(new_node)
+    db.commit()
+    db.refresh(new_node)
+
+    # def to_dict(obj):
+    #     return {column.name: getattr(obj, column.name) for column in obj.__table__.columns}
+
+    # print(to_dict(new_node))
+
+    return new_node
+
+# Create L2 node
+def l2_init(hub: Hub, prev_node: Node):
     # Use the findings from level one to prompt OpenAI for a query that Exa can use, and incorporate Exa prompt guidelines for better query formulation
     level_two_prompt = (
         f"""Our findings about {prev_node.title} suggest the following trends: 
@@ -241,36 +325,30 @@ def create_level_two_node(prev_node: Node):
     )
 
     # Send this prompt to OpenAI to generate a search query for Exa
-    generated_query = _message_and_wait_for_reply(prev_node["assistant_id"], prev_node["thread_id"], level_two_prompt)
+    generated_query = _message_and_wait_for_reply(hub.assistant_id, prev_node.thread_id, level_two_prompt)
 
     # Parse the generated search query
     search_query = generated_query.text_list[0]  # (Assuming first response contains the search query)
 
-    # print(search_query)
-
-    # Use the search query to call Exa's search function and fetch relevant papers
+    # Use the search query to call Exa's search function and fetch relevant papers and resources
     search_results = exa_search(query=search_query)
 
-    print(search_results)
-    return search_results
+    # Extract and create threads per node
+    prompts_with_threads = []
+    for result in search_results.results:
+        prompt = f"You have a summary for a new source, {result.title} which has the summary {result.summary}. Explain how this relates to the previous information {prev_node.title} with text {prev_node.text}. Output a summary enclosed in ~ and then a title based on this summary that is one sentence <= 50 characters also surrounded by ~ (don't forget that both the summary and the title should be enclosed in ~). Heavily emphasize the connection to the previous information. Provide a little bit of the context for the new source summary as well."
+        prompts_with_threads.append((prompt, client.beta.threads.create().id))
 
+    # Run each l2 node creation in parallel
+    with multiprocessing.Pool() as pool:
+        results = pool.starmap(_l2_create_node, [
+            (hub, thread_id, prompt, prev_node) for prompt, thread_id in prompts_with_threads
+        ])
 
-# Define exa search function
-def exa_search(query: str) -> ExaSearchResponse:
-    # Perform the Exa search (assumed to return a list of dicts or similar)
-    raw_results = exa.search_and_contents(query=query, type='auto', summary=True, num_results=L2_OUTPUT)
+    pool.close()
+    pool.join()
 
-    # print("RAW RESULTS ARE:")
+    # print(results)
+    # print([result.id for result in results])
 
-    print(raw_results)
-    # Example of how you would format the results into the Pydantic model
-    formatted_results = [
-        SearchResult(
-            title=result.title,
-            url=result.url,
-            summary=result.summary
-        )
-        for result in raw_results.results
-    ]
-
-    return ExaSearchResponse(results=formatted_results, total_results=len(raw_results.results))
+    return [result.id for result in results]

@@ -23,42 +23,14 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import L1Node from './L1node';
 import L0node from './L0node';
+import L2Node from './L2node';
 import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse} from "@/lib/api";
 
 const nodeTypes = {
   L0: L0node,
   L1: L1Node,
+  L2: L2Node,
 };
-
-// Example output from the API
-/**
- * {
-    "id": "1550f53b-7256-4306-afd9-17fb56fef536",
-    "text": "The time series plot above shows the Humidity levels over time. You can observe fluctuations and a general trend of fluctuation around the mid-60% range. There are no distinct seasonal patterns visible at this scale, but the variation suggests normal day-to-day changes in humidity. If a more granular view of seasonal trends is needed, smoothing techniques or longer-term aggregations could be applied.",
-    "title": "Humidity fluctuates around mid-60% without seasonality.",
-    "parent_node_id": null,
-    "images": [
-      {
-        "id": "5712be83-9009-4999-9b85-73423e15a5e7",
-        "url": "http://localhost:8001/images/5712be83-9009-4999-9b85-73423e15a5e7"
-      }
-    ],
-    "questions": [
-      {
-        "id": "d61b4fe5-73ac-45af-8ebf-e2ed29838ec2",
-        "content": "What causes the fluctuations in humidity levels?"
-      },
-      {
-        "id": "bb7d3461-dc61-44ba-a20f-f67db6438137",
-        "content": "Are there any external factors influencing humidity?"
-      },
-      {
-        "id": "7248d74e-ef99-40e9-be49-a2007bcbd11e",
-        "content": "How does humidity impact weather conditions?"
-      }
-    ]
-  }
- */
 
 const testData = [
   {
@@ -251,6 +223,7 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
       edgePoints = [true, true, false, true];
       positions = [Position.Left, Position.Right];
     }
+
     const node: Node = {
       id: item.id,
       type: 'L1',
@@ -290,6 +263,21 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
   }
 
   return { nodes, edges };
+}
+
+function generateL2NodesAndEdges(parentNode: Node, data: {
+  id: string;
+  text: string;
+}): { nodes: Node[], edges: Edge[] } {
+  const radius = 800;
+  const buffer = 200;
+  const parentCoordinates = parentNode.position;
+
+  for (const [index, item] of data.entries()) {
+
+  }
+
+  return { nodes: [], edges: [] };
 }
 
 const flowKey = 'flow';
@@ -353,16 +341,19 @@ function FlowCanvas() {
                 const currentItem = nonUsedItems[i];
 
                 if (currentItem) {
+                  console.log(currentItem.images.map((image) => image.url))
                   // Update that specific node with the current item
                   updatedNodes[unpopulatedIndex] = {
                     ...updatedNodes[unpopulatedIndex],
-                  data: {
-                    ...updatedNodes[unpopulatedIndex].data,
-                    title: currentItem.title,
-                    text: currentItem.text,
-                    questions: currentItem.questions.map((question) => question.content),
-                    images: currentItem.images.map((image) => image.url),
-                  },
+                    id: updatedNodes[unpopulatedIndex]?.id || `node-${unpopulatedIndex}`,
+                    position: updatedNodes[unpopulatedIndex]?.position || { x: 0, y: 0 }, // Ensure position is always defined
+                    data: {
+                      ...updatedNodes[unpopulatedIndex]?.data,
+                      title: currentItem.title,
+                      text: currentItem.text,
+                      questions: currentItem.questions.map((question) => question.content),
+                      images: currentItem.images.map((image) => image.url),
+                    },
                   };
 
                   // Mark the node as populated and the item as used
@@ -403,7 +394,7 @@ function FlowCanvas() {
         const l0Node = createL0Node({
           id: sessionResponse.hub,
           title: file.name,
-          data: {}
+          data: [],
         });
 
         testData.map((item) => {

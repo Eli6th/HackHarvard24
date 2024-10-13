@@ -4,12 +4,13 @@ You are an AI Data Scientist focusing on identifying valuable features in datase
 """
 NUM_PROMPTS = 5
 
-L2_OUTPUT = 3
 DELIMITER = "~"
 INITIAL_PROMPT = f"Generate {NUM_PROMPTS} (don't forget this, it must be {NUM_PROMPTS}) possible instructions for the dataset specified. Instructions should be unique and precise in nature. Each instruction should be delimited by {DELIMITER} (dont forget this, must be {DELIMITER} before and {DELIMITER} after) before and after -- be concise! Each instruction should be different in nature "
 ONE_LINER = "Summarize the key findings in one sentence <= 50 characters."
 SURPRISING = {"enabled": False, "prompt": "Include a 'surprising' score from 1 to 10 at the end to indicate how if finding is boring / generic. Example format {'title': '...', 'surprising': 5}"}
 NUM_QUESTIONS = 3
+
+L2_OUTPUT = 3
 
 SUGGESTED_QUESTION_PROMPT = f"Generate {NUM_QUESTIONS} followup questions that a user might ask about the finding. The questions should focus on clarifications of difficult terms or implications of causal relationships found. Each question should be delimited by a {DELIMITER} before and after (this is important {DELIMITER} before and {DELIMITER} after)"
 LEVEL_ONE_HALF_PROMPT = "Use the previous responses in the thread conversation in order to answer the question. Limit the response to <= 300 characters. Cite any sources or papers when referring to external concepts/ideas."

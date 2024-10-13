@@ -8,3 +8,4 @@ usa_rain_prediction.csv
 *.db
 test.db
 __pycache__
+test.py

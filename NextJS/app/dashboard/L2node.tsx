@@ -1,7 +1,7 @@
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { TypographyH3, TypographyP } from '@/components/ui/typography';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Handle, NodeProps, Position } from 'reactflow';
 
 function L2Node({ data }: NodeProps<{
@@ -45,3 +45,5 @@ function L2Node({ data }: NodeProps<{
     </div>
   );
 }
+
+export default memo(L2Node);

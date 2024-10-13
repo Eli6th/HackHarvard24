@@ -1,11 +1,14 @@
 import json
-import threading
+
+import multiprocessing
+
 import uuid
 from io import BytesIO
 from typing import BinaryIO, List, Optional
 from uuid import UUID
 
 import uvicorn
+
 from .database import (Hub, Image, Node, NodeResponse, Session,
                       create_db_and_tables)
 from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
@@ -86,6 +89,24 @@ async def start_session(
         }
 
 
+
+@app.get("/question/{question_id}", response_model=NodeResponse)
+async def answer_question(question_id: str, db: _Session = Depends(get_db)):
+    """
+    Get the question and answer for a specific node.
+    """
+
+    question = db.query(Question).filter(Question.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    prev_node = db.query(Node).filter(Node.id == question.node_id).first()
+    if not prev_node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    new_node = create_level_one_half_node(question, prev_node)
+    return new_node
+
 @app.get("/hubs/{hub_id}/nodes", response_model=List[NodeResponse])
 async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     """
@@ -108,23 +129,39 @@ async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     # Serialize and return the nodes
     return nodes
 
+@app.post("/l2nodes", response_model=List[NodeResponse])
+async def create_level_two_node(l1_node_id: str, db: _Session = Depends(get_db)):
+    """
+    Create a new level two node and return the response.
+    """
+    # Retrieve the L1 node from the database
+    l1_node = db.query(Node).get(Node.id == l1_node_id)
+
+    # FOR DEBUGGING:
+    # l1_node = db.query(Node).filter(Node.parent_node_id == None).first()
+
+    response = l2_init(l1_node.hub, l1_node)
+    nodes = db.query(Node).filter(Node.id.in_(response)).all()
+
+    # Serialize and return the nodes
+    return nodes
+
+
 @app.get("/runfull")
 async def runfull():
-    thread = threading.Thread(target=run_utils_main)
-    thread.start()
+    # Create a new process using multiprocessing
+    process = multiprocessing.Process(target=run_utils_main)
+    process.start()
 
-def run_utils_main():
-    # level_one_nodes = initiate_level_one_multiprocess()
-    # level_one_nodes = json.loads(level_one_nodes)
-    # for node in level_one_nodes:
-    #     response = create_level_two_node(node)
-    #     print(f"For node {node['title']} generated with prompt {node['prompt']}, we receive the following results:")
-    #     for result in response.results:
-    #         print(result)
-    #         # print(result.title)
-    #         # print(result.url)
-    #         # print(result.summary)
-    #         print()
+# FOR DEBUGGING
+def run_utils_main( db: Session = next(get_db())):
+    import requests
+    single_node = db.query(Node).filter(Node.parent_node_id == None).first()
+    response = requests.post(f"http://localhost:8000/l2nodes", params={"l1_node_id": single_node.id})
+    if response.status_code == 200:
+        print("L2 node created successfully:", response.json())
+    else:
+        print("Error creating L2 node:", response.status_code, response.text)
     return
 
 

@@ -8,6 +8,7 @@ import {
   type NodeProps,
 } from 'reactflow';
 import { Icons } from '@/components/icons';
+import ReactMarkdown from 'react-markdown';
 
 function L1Node({ data }: NodeProps<{
   title: string;
@@ -15,12 +16,15 @@ function L1Node({ data }: NodeProps<{
   expanded: boolean;
   isHighlighted: boolean;
   edgePoints: boolean[];
-  questions: string[];
-  imageSrc?: string;
+  questions?: string[];
+  images?: string[];
 }>) {
+  console.log(data.images)
   const [isExpanded, setIsExpanded] = useState<boolean>(data.expanded);
   const [openQuestions, setOpenQuestions] = useState<boolean>(false);
-
+  const MarkdownRenderer = (markdownText: string) => {
+    return <ReactMarkdown>{markdownText}</ReactMarkdown>;
+  };
   useEffect(() => {
     setIsExpanded(data.expanded);
   }, [data.expanded]);
@@ -42,7 +46,7 @@ function L1Node({ data }: NodeProps<{
       >
         <TypographyH3>{data.title}</TypographyH3>
         <div style={{ marginTop: 5 }}>
-          <TypographyP className="text-lg">{data.text.split(' ').slice(0, 5).join(' ') + '...'}</TypographyP>
+          {data.text.length > 100 ? `${data.text.substring(0, 100)}...` : data.text}
         </div>
         <Handle type={data.edgePoints[0] ? 'source' : 'target'} position={Position.Left} id="left" />
         <Handle type={data.edgePoints[1] ? 'source' : 'target'} position={Position.Bottom} id="bottom" />
@@ -136,6 +140,7 @@ function L1Node({ data }: NodeProps<{
     );
   }
 
+
   return (
     <div className="relative">
       <div
@@ -157,10 +162,13 @@ function L1Node({ data }: NodeProps<{
             <Icons.close size={24} className="w-5 h-5 mb-3" />
           </Button>
         </div>
-        <div style={{ marginTop: 5 }}>
-          <p className="text-lg">{data.text}</p>
+        <div style={{ marginTop: 5 }} className="flex flex-col gap-4">
+            {data.images && data.images.map((url) => (
+              <Image key={url} src={url} alt={url} width={300} height={300} className="justify-center self-center" />
+            ))}
+          {MarkdownRenderer(data.text)}
         </div>
-        {data.imageSrc && <Image src={data.imageSrc} alt="expand" width={750} height={500} />}
+
         <Handle type={data.edgePoints[0] ? 'source' : 'target'} position={Position.Left} id="left" />
         <Handle type={data.edgePoints[1] ? 'source' : 'target'} position={Position.Bottom} id="bottom" />
         <Handle type={data.edgePoints[2] ? 'source' : 'target'} position={Position.Right} id="right" />
