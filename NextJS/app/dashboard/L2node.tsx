@@ -69,7 +69,10 @@ function L2Node({ data }: NodeProps<{
           }
         </div>
       )}
-      <Handle type="target" position={edgeHandler} id={edgeHandler} />
+        <Handle type='target' position={Position.Left} id="left" />
+        <Handle type='target' position={Position.Bottom} id="bottom" />
+        <Handle type='target' position={Position.Right} id="right" />
+        <Handle type='target' position={Position.Top} id="top" />
       {data.isHighlighted && (
         <Button
           variant="ghost"

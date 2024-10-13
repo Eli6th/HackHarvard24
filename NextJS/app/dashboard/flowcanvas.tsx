@@ -382,6 +382,10 @@ function FlowCanvas() {
     return node;
   };
 
+  function getRandomInteger(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
   const addAdditionalNode = (parent_node_id: string, level: string, question: { id: string; content: string } | undefined, prompt: string | undefined) => {
     console.log(parent_node_id)
     const parentNode = getNodeViaIDFromAPI(parent_node_id);
@@ -399,28 +403,28 @@ function FlowCanvas() {
 
     for (let i = 0; i < numOfNodes; i++) {
       // Define the new node's position relative to the parent node based on free space logic
-    let newNodePosition = { x: parentCoordinates.x, y: parentCoordinates.y - 200 }; // Default to the top of the parent node
+    let newNodePosition = { x: parentCoordinates.x + getRandomInteger(-25, 25), y: parentCoordinates.y - getRandomInteger(100, 800) }; // Default to the top of the parent node
     let edgepoints: Boolean[] = []
     let positions: Position[] = []
     // Left, bottom, right, up (edgePoints order: left, bottom, right, top)
     if (parentData.edgePoints[0] === false) {
       // Left side is free, place the new node to the right of the parent node
-      newNodePosition = { x: parentCoordinates.x + 400, y: parentCoordinates.y };
+      newNodePosition = { x: parentCoordinates.x + getRandomInteger(100, 800) , y: parentCoordinates.y + getRandomInteger(-25, 25)};
       edgepoints = [false, true, true, true]; // Mark the left edge as used
       positions = [Position.Right, Position.Left]; // Connect from right to left
     } else if (parentData.edgePoints[1] === false) {
       // Bottom side is free, place the new node below the parent node
-      newNodePosition = { x: parentCoordinates.x, y: parentCoordinates.y - 400 }; // Place below
+      newNodePosition = { x: parentCoordinates.x + getRandomInteger(-25, 25), y: parentCoordinates.y - getRandomInteger(100, 800)  }; // Place below
       edgepoints = [true, false, true, true]; // Mark the bottom edge as used
       positions = [Position.Top, Position.Bottom]; // Connect from bottom to top
     } else if (parentData.edgePoints[2] === false) {
       // Right side is free, place the new node to the left of the parent node
-      newNodePosition = { x: parentCoordinates.x - 400, y: parentCoordinates.y };
+      newNodePosition = { x: parentCoordinates.x - getRandomInteger(100, 800) , y: parentCoordinates.y + getRandomInteger(-25, 25)};
       edgepoints = [true, true, false, true]; // Mark the right edge as used
       positions = [Position.Left, Position.Right]; // Connect from left to right
     } else if (parentData.edgePoints[3] === false) {
       // Top side is free, place the new node above the parent node
-      newNodePosition = { x: parentCoordinates.x, y: parentCoordinates.y + 400 }; // Place above
+      newNodePosition = { x: parentCoordinates.x + getRandomInteger(-25, 25), y: parentCoordinates.y + getRandomInteger(100, 800)  }; // Place above
       edgepoints = [true, true, true, false]; // Mark the top edge as used
       positions = [Position.Bottom, Position.Top]; // Connect from top to bottom
     }
@@ -843,7 +847,7 @@ function FlowCanvas() {
   }, [setNodes, setEdges, setViewport]);
 
   return (
-    <div style={{width: '100%', height: '95vh', position: 'relative'}}>
+    <div style={{width: '100%', height: '93vh', position: 'relative'}}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
