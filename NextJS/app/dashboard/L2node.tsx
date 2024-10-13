@@ -40,7 +40,7 @@ function L2Node({ data }: NodeProps<{
       )}
       {!isExpanded && (
         <div style={{ marginTop: 5 }} className="flex flex-col gap-4">
-          {MarkdownRenderer(data.text.length > 100 ? `${data.text.substring(0, 100)}...` : data.text)}
+          {MarkdownRenderer(data.text.length > 200 ? `${data.text.substring(0, 200)}...` : data.text)}
         </div>
       )}
       <Handle type="target" position={edgeHandler} id={edgeHandler} />
