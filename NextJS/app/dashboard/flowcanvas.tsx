@@ -338,7 +338,8 @@ function FlowCanvas() {
   // Function to update the loading text in unpopulated nodes
   const updateLoadingText = () => {
     setNodes((currentNodes) => {
-      return currentNodes.map((node) => {
+      const shadowNodes = [...currentNodes];
+      return shadowNodes.map((node) => {
         if (node.data.title == "Loading...") {
           const currentStep = parseInt(node.data.text[5], 10); // Extract step number from the string
           if (currentStep < loadingText.length) {
@@ -371,8 +372,6 @@ function FlowCanvas() {
     }
   };
 
-  const addAdditionalNode = (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => {
-    const parentNode = getNode(parent_node_id);
   const getNodeViaIDFromAPI = (data_id: string) => {
     let node: Node | undefined;
     setNodes((nds) => {
@@ -480,37 +479,37 @@ function FlowCanvas() {
     } else {
       handleExaClick(parentNode.data.id, newNodes.map((node) => node.id))
     }
-  }}
+  };
 
   const handleQuestionClick = async (
     question: { id: string; content: string },
     node_id: string): Promise<void> => {
-  try {
-    // Fetch the question node using its ID
-    const qNode = await fetchQuestionNode("http://localhost:8001/question", question.id);
-    setNodes((nds) => {
-      const shadow_nds = [...nds];
-      shadow_nds.forEach((node) => {
-        if (node.id == node_id) {
-          node.data =  {
-            ...node.data,
-            title: qNode.title,
-            text: qNode.text,
-            expanded: false,
-            questions: qNode.questions,
-            images: qNode.images,
-            id: qNode.id,
+    try {
+      // Fetch the question node using its ID
+      const qNode = await fetchQuestionNode("http://localhost:8001/question", question.id);
+      setNodes((nds) => {
+        const shadow_nds = [...nds];
+        shadow_nds.forEach((node) => {
+          if (node.id == node_id) {
+            node.data = {
+              ...node.data,
+              title: qNode.title,
+              text: qNode.text,
+              expanded: false,
+              questions: qNode.questions,
+              images: qNode.images,
+              id: qNode.id,
+            }
           }
-        }
-      })
+        })
 
-      return shadow_nds
-    });
+        return shadow_nds
+      });
 
-  } catch (error) {
-    console.error("Error in handleQuestionClick:", error);
-  }
-};
+    } catch (error) {
+      console.error("Error in handleQuestionClick:", error);
+    }
+  };
 
   const handlePromptClick = async (
     prompt: string,
@@ -616,17 +615,6 @@ function FlowCanvas() {
             console.log("Unpopulated nodes indices:", unpopulatedIndices);
 
             if (unpopulatedIndices.length > 0 && items.length > 0) {
-
-              // We will change the loading screen text for unpopulated nodes
-              nds.forEach((node, index) => {
-                if (unpopulatedIndices.includes(index)) {
-                  console.log("updating node: ", nds[index].data.text);
-                  let loadingStep = parseInt(nds[index].data.text[5], 10);
-                  loadingStep = Math.max(loadingStep + 1, 5);
-                  console.log("New loading step: ", loadingStep);
-                  nds[index].data.text = loadingText[loadingStep - 1];
-                }
-              })
 
               // We will only update the number of nodes equal to the number of items
               const updatedNodes = [...nds]; // Create a shallow copy of nodes
