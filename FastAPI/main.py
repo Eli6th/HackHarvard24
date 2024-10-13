@@ -1,5 +1,4 @@
 import json
-from utils import ExaSearchResponse
 import multiprocessing
 import uuid
 from io import BytesIO
@@ -7,16 +6,14 @@ from typing import BinaryIO, List, Optional
 from uuid import UUID
 
 import uvicorn
-from database import (Hub, Image, Node, NodeResponse, Session,
+from database import (Hub, Image, Node, NodeResponse, Question, Session,
                       create_db_and_tables)
 from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
                      HTTPException, Response, UploadFile)
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as _Session
-
-
-from utils import l1_init, create_assistant_for_file, l2_init, get_db, ExaSearchResponse
-from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image, Question
+from utils import (ExaSearchResponse, create_assistant_for_file, get_db,
+                   l1_init, l2_init)
 
 app = FastAPI()
 
@@ -116,10 +113,10 @@ async def create_level_two_node(l1_node_id: str, db: _Session = Depends(get_db))
     """
     # Retrieve the L1 node from the database
     l1_node = db.query(Node).get(Node.id == l1_node_id)
-    
+
     # FOR DEBUGGING:
     # l1_node = db.query(Node).filter(Node.parent_node_id == None).first()
-    
+
     response = l2_init(l1_node.hub, l1_node)
     nodes = db.query(Node).filter(Node.id.in_(response)).all()
 
