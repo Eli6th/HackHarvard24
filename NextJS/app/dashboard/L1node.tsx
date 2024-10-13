@@ -24,7 +24,6 @@ function L1Node({ data }: NodeProps<{
   id: string,
   addAdditionalNode: (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => Promise<void>;
 }>) {
-  console.log(data.images)
   const [isExpanded, setIsExpanded] = useState<boolean>(data.expanded);
   const [openQuestions, setOpenQuestions] = useState<boolean>(false);
   const MarkdownRenderer = (markdownText: string) => {
@@ -52,7 +51,7 @@ function L1Node({ data }: NodeProps<{
       >
         <TypographyH3>{data.title}</TypographyH3>
         <div style={{ marginTop: 5 }}>
-          {data.text.length > 100 ? `${data.text.substring(0, 100)}...` : data.text}
+          {MarkdownRenderer(data.text.length > 100 ? `${data.text.substring(0, 100)}...` : data.text)}
         </div>
         <Handle type={data.edgePoints[0] ? 'source' : 'target'} position={Position.Left} id="left" />
         <Handle type={data.edgePoints[1] ? 'source' : 'target'} position={Position.Bottom} id="bottom" />
@@ -72,7 +71,7 @@ function L1Node({ data }: NodeProps<{
               variant="ghost"
               className="absolute -right-12 top-11 rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
               style={{ height: '40px', width: '40px' }}
-              onClick={() => setIsExpanded(true)}
+              onClick={() => data.addAdditionalNode(data.id, "L2", undefined)}
             >
               <Icons.search size={24} className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5" />
             </Button>
@@ -109,6 +108,7 @@ function L1Node({ data }: NodeProps<{
                   onClick={() => {
                     data.addAdditionalNode(data.id, "L1", question);
                     data.questions = data.questions.filter(_question => _question.id !== question.id);
+                    setOpenQuestions(false);
                   }}
                 >
                   {question.content}

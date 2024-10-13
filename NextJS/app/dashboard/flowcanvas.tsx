@@ -24,7 +24,7 @@ import 'reactflow/dist/style.css';
 import L1Node from './L1node';
 import L0node from './L0node';
 import L2Node from './L2node';
-import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse, fetchQuestionNode} from "@/lib/api";
+import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse, fetchQuestionNode, fetchExaNodes} from "@/lib/api";
 
 const nodeTypes = {
   L0: L0node,
@@ -311,8 +311,21 @@ function FlowCanvas() {
   const [rfInstance, setRfInstance] = useState<any>(null);
   const {setCenter, getNode, setViewport} = useReactFlow();
 
+  const getNodeViaIDFromAPI = (data_id: string) => {
+    let node: Node | undefined;
+    setNodes((nds) => {
+      const shadow_nds = [...nds];
+      node = nds.find(node => node.data.id === data_id);
+      return shadow_nds;
+    });
+    return node;
+  };
+
   const addAdditionalNode = (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => {
-    const parentNode = getNode(parent_node_id);
+    console.log(parent_node_id)
+    const parentNode = getNodeViaIDFromAPI(parent_node_id);
+    console.log(parentNode)
+
     if (!parentNode) {
       console.error(`Parent node with ID ${parent_node_id} not found`);
       return;
@@ -320,8 +333,11 @@ function FlowCanvas() {
 
     const parentCoordinates = parentNode.position;
     const parentData = parentNode.data;
+    const numOfNodes = level == "L1" ? 1 : 3;
+    const newNodes = [];
 
-    // Define the new node's position relative to the parent node based on free space logic
+    for (let i = 0; i < numOfNodes; i++) {
+      // Define the new node's position relative to the parent node based on free space logic
     let newNodePosition = { x: parentCoordinates.x, y: parentCoordinates.y - 200 }; // Default to the top of the parent node
     let edgepoints: Boolean[] = []
     let positions: Position[] = []
@@ -388,11 +404,13 @@ function FlowCanvas() {
     // Update the nodes and edges state
     setNodes((nds) => [...nds, newNode]);
     setEdges((eds) => [...eds, newEdge]);
+    newNodes.push(newNode);
+    }
 
     if (level == "L1") {
-      handleQuestionClick(question, newNode.id);
+      handleQuestionClick(question, newNodes[0].id);
     } else {
-      // Handle L2 functionality
+      handleExaClick(parentNode.data.id, newNodes.map((node) => node.id))
     }
   }
 
@@ -426,6 +444,55 @@ function FlowCanvas() {
     console.error("Error in handleQuestionClick:", error);
   }
 };
+
+ const handleExaClick = async (
+  parent_node_id: string,
+  node_ids: string[],
+): Promise<void> => {
+  try {
+    // Fetch the list of ApiItems (qNodeList) using parent_node_id
+    const qNodeList = await fetchExaNodes("http://localhost:8001/l2nodes", parent_node_id);
+
+    // Ensure node_ids length matches qNodeList length before proceeding
+    if (node_ids.length !== qNodeList.length) {
+      console.error("node_ids and qNodeList lengths do not match.");
+      return;
+    }
+
+    // Update the nodes state
+    setNodes((nds) => {
+      // Create a copy of the current nodes
+      const shadow_nds = [...nds];
+
+      // Iterate through node_ids and qNodeList to update each node
+      node_ids.forEach((node_id, index) => {
+        const correspondingApiItem = qNodeList[index];
+
+        // Find the node in shadow_nds with the matching node_id
+        shadow_nds.forEach((node) => {
+          if (node.id === node_id) {
+            // Update the node's data with the corresponding ApiItem
+            node.data = {
+              ...node.data,
+              title: correspondingApiItem.title,
+              text: correspondingApiItem.text,
+              expanded: false,
+              questions: correspondingApiItem.questions,
+              images: correspondingApiItem.images,
+              id: correspondingApiItem.id, // Optional: update the id if needed
+            };
+          }
+        });
+      });
+
+      // Return the updated nodes array
+      return shadow_nds;
+    });
+  } catch (error) {
+    console.error("Error in handleExaClick:", error);
+  }
+};
+
   // Poll API to fetch nodes and update progressively
   const pollHubNodes = useCallback(async (hubId: string) => {
     const url = `http://localhost:8001/hubs/${hubId}/nodes`;
@@ -470,7 +537,7 @@ function FlowCanvas() {
                       text: currentItem.text,
                       questions: currentItem.questions,
                       images: currentItem.images.map((image) => image.url),
-                      id: updatedNodes[unpopulatedIndex]?.id || `node-${unpopulatedIndex}`,
+                      id: currentItem.id,
                       addAdditionalNode: addAdditionalNode
                     },
                   };
