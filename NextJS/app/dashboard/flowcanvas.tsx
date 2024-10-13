@@ -24,7 +24,7 @@ import 'reactflow/dist/style.css';
 import L1Node from './L1node';
 import L0node from './L0node';
 import L2Node from './L2node';
-import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse, fetchQuestionNode, fetchExaNodes} from "@/lib/api";
+import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse, fetchQuestionNode, fetchExaNodes, fetchQuestionNodePrompted} from "@/lib/api";
 
 const nodeTypes = {
   L0: L0node,
@@ -321,7 +321,7 @@ function FlowCanvas() {
     return node;
   };
 
-  const addAdditionalNode = (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => {
+  const addAdditionalNode = (parent_node_id: string, level: string, question: { id: string; content: string } | undefined, prompt: string | undefined) => {
     console.log(parent_node_id)
     const parentNode = getNodeViaIDFromAPI(parent_node_id);
     console.log(parentNode)
@@ -408,7 +408,12 @@ function FlowCanvas() {
     }
 
     if (level == "L1") {
-      handleQuestionClick(question, newNodes[0].id);
+      if (question) {
+        handleQuestionClick(question, newNodes[0].id);
+      } else {
+        console.log("HERE")
+        handlePromptClick(prompt, newNodes[0].id, parent_node_id);
+      }
     } else {
       handleExaClick(parentNode.data.id, newNodes.map((node) => node.id))
     }
@@ -416,11 +421,42 @@ function FlowCanvas() {
 
   const handleQuestionClick = async (
     question: { id: string; content: string },
-    node_id: string,
-  ): Promise<void> => {
+    node_id: string): Promise<void> => {
   try {
     // Fetch the question node using its ID
     const qNode = await fetchQuestionNode("http://localhost:8001/question", question.id);
+    setNodes((nds) => {
+      const shadow_nds = [...nds];
+      shadow_nds.forEach((node) => {
+        if (node.id == node_id) {
+          node.data =  {
+            ...node.data,
+            title: qNode.title,
+            text: qNode.text,
+            expanded: false,
+            questions: qNode.questions,
+            images: qNode.images,
+            id: qNode.id,
+          }
+        }
+      })
+
+      return shadow_nds
+    });
+
+  } catch (error) {
+    console.error("Error in handleQuestionClick:", error);
+  }
+};
+
+  const handlePromptClick = async (
+    prompt: string,
+    node_id: string,
+    api_node_id: string
+  ): Promise<void> => {
+  try {
+    // Fetch the question node using its ID
+    const qNode = await fetchQuestionNodePrompted("http://localhost:8001/question/from", api_node_id, prompt);
     setNodes((nds) => {
       const shadow_nds = [...nds];
       shadow_nds.forEach((node) => {

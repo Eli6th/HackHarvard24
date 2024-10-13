@@ -9,6 +9,7 @@ import {
 } from 'reactflow';
 import { Icons } from '@/components/icons';
 import ReactMarkdown from 'react-markdown';
+import AskQuestionButton from "./addquestion"
 
 function L1Node({ data }: NodeProps<{
   title: string;
@@ -22,7 +23,7 @@ function L1Node({ data }: NodeProps<{
   }[];
   images?: string[];
   id: string,
-  addAdditionalNode: (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => Promise<void>;
+  addAdditionalNode: (parent_node_id: string, level: string, question: { id: string; content: string } | undefined, prompt: string | undefined) => Promise<void>;
 }>) {
   const [isExpanded, setIsExpanded] = useState<boolean>(data.expanded);
   const [openQuestions, setOpenQuestions] = useState<boolean>(false);
@@ -115,20 +116,10 @@ function L1Node({ data }: NodeProps<{
                 </Button>
               );
             })}
-            <Button
-              style={{
-                zIndex: 100,
-                position: 'absolute',
-                top: `calc(50% + ${Math.sin(((data.questions.length) / (data.questions.length + 2)) * 2 * Math.PI) * 250 * 0.5}px)`,
-                left: `calc(50% + ${Math.cos(((data.questions.length) / (data.questions.length + 2)) * 2 * Math.PI) * 250 * 1.25}px)`,
-                transform: 'translate(-50%, -50%)',
-                width: '200px',
-              }}
-              variant="ghost"
-              className="text-xs text-gray-800 bg-[#F9F6F0] min-w-[100px] hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
-            >
-              + Ask your own question
-            </Button>
+            <AskQuestionButton submitQuestionFunc={(prompt) => {
+              data.addAdditionalNode(data.id, "L1", undefined, prompt);
+              setOpenQuestions(false);
+            }} data={data} />
             <Button
               style={{
                 zIndex: 100,

@@ -256,6 +256,27 @@ def create_level_one_half_node(question: Question, node: Node, db: Session = nex
     db.commit()
     return new_node
 
+def create_level_one_half_node_prompted(prompt: str, node: Node, db: Session = next(get_db())):
+    response = _message_and_wait_for_reply(node.hub.assistant_id, node.thread_id, prompt + LEVEL_ONE_HALF_PROMPT)
+    title = _generate_title(node.hub.assistant_id, node.thread_id)
+
+    new_thread = client.beta.threads.create()
+
+    new_node = Node(
+        prompt=prompt,
+        text=response.text_list[0],
+        title=title,
+        thread_id=new_thread.id,
+        hub_id=node.hub.assistant_id,
+
+    )
+    _generate_questions(new_node, node.hub.assistant_id, node.thread_id)
+
+    # Save Node to DB
+    db.add(new_node)
+    db.commit()
+    return new_node
+
 # Define exa search function
 def exa_search(query: str) -> ExaSearchResponse:
     # Perform the Exa search (assumed to return a list of dicts or similar)
