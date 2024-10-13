@@ -1,7 +1,9 @@
 "use client";
 
+/* eslint-disable */
+
 import { Button } from '@/components/ui/button';
-import React, {useCallback, useRef, useState} from 'react';
+import React, {useCallback, useRef, useState, useEffect} from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -25,6 +27,9 @@ import L1Node from './L1node';
 import L0node from './L0node';
 import L2Node from './L2node';
 import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse} from "@/lib/api";
+import Papa, { ParseResult } from 'papaparse';  // Import the type definitions from PapaParse
+import { set } from 'zod';
+
 
 const nodeTypes = {
   L0: L0node,
@@ -273,9 +278,9 @@ function generateL2NodesAndEdges(parentNode: Node, data: {
   const buffer = 200;
   const parentCoordinates = parentNode.position;
 
-  for (const [index, item] of data.entries()) {
+  // for (const [index, item] of data.entries()) {
 
-  }
+  // }
 
   return { nodes: [], edges: [] };
 }
@@ -290,6 +295,9 @@ function FlowCanvas() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const populatedNodeIds = useRef<Set<string>>(new Set()); // Keep track of populated nodes
   const usedItemIds = useRef<Set<string>>(new Set()); // Track used item ids
+
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [fileData, setFileData] = useState<any[]>([]);
 
 
   const triggerFileInput = () => {
@@ -387,14 +395,25 @@ function FlowCanvas() {
       setUploadSuccess(null);
       populatedNodeIds.current.clear(); // Clear previous populated node tracking
 
+      Papa.parse(file, {
+        header: true, // Ensure that column headers are included
+        complete: (results: ParseResult<any>) => {
+          console.log("parsed csv: ", results.data);
+          // Extract the first 5-10 rows from the results
+          const slicedData = results.data.slice(0, Math.min(results.data.length, 10)); // Slicing first 10 rows
+          setTableData(slicedData); // Store in state
+        },
+      });
+
       // const l0Node = createL0Node({ id: 'l0-node', title: 'Node 4', data: [{title: 'Column 1', rows: ['Row 1', 'Row 2', 'Row 3']}, {title: 'Column 2', rows: ['Row 4', 'Row 5', 'Row 6']}, {title: 'Column 3', rows: ['Row 7', 'Row 8', 'Row 9']}]});
       // const { nodes: initialNodes, edges: initialEdges } = generateL1NodesAndEdges(l0Node, testData);
       try {
+        console.log("table data: ", tableData);
         const sessionResponse: SessionResponse = await createSession('http://localhost:8001/session/start', file);
         const l0Node = createL0Node({
           id: sessionResponse.hub,
           title: file.name,
-          data: [],
+          data: tableData,
         });
 
         testData.map((item) => {
@@ -421,7 +440,30 @@ function FlowCanvas() {
         setIsUploading(false);
       }
     }
-  }, [pollHubNodes, setNodes]);
+  }, [pollHubNodes, setNodes, setTableData]);
+
+  // Listen for changes in tableData and trigger node creation when new tableData is available
+  useEffect(() => {
+    if (tableData.length > 0) {  // Check if tableData has any rows
+      (async () => {
+        try {
+          const sessionResponse: SessionResponse = await createSession('http://localhost:8001/session/start', file); // Ensure 'file' is the uploaded file
+          const l0Node = createL0Node({
+            id: sessionResponse.hub,
+            title: 'Uploaded CSV',
+            data: tableData, // Pass the updated tableData
+          });
+
+          const { nodes: initialNodes, edges: initialEdges } = generateL1NodesAndEdges(l0Node, testData);
+          setNodes([l0Node, ...initialNodes]);
+          setEdges(initialEdges);
+          await pollHubNodes(sessionResponse.hub);
+        } catch (error) {
+          setUploadSuccess(false);
+        }
+      })();
+    }
+  }, [tableData, pollHubNodes, setNodes, setEdges]);  // Ensure the effect runs when tableData updates
 
   const onConnect = useCallback(
     (params: Connection) =>
