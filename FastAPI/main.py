@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as _Session
 
 
-from utils import l1_init, create_assistant_for_file, create_level_two_node, get_db, ExaSearchResponse, create_level_one_half_node
+from utils import l1_init, create_assistant_for_file, l2_init, get_db, ExaSearchResponse, create_level_one_half_node
 from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image, Question
 
 app = FastAPI()
