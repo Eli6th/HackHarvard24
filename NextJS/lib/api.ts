@@ -82,3 +82,51 @@ export const pollApiUntilNItems = async (
   await poll(); // Start polling immediately
 };
 
+export const pollApiUntilNItemsPost = async (
+  url: string,
+  n: number,
+  nodeId: string, // Assuming you want to send node_id as part of the payload
+  onPartialResult: (data: ApiResponseItem[]) => void, // callback for partial results
+  interval = 5000 // Default interval of 5 seconds
+): Promise<void> => {
+  let currentData: ApiResponseItem[] = []; // Keep track of the data we have
+
+  const poll = async () => {
+    try {
+      const response = await fetch(url, {
+        method: "POST", // Using POST request
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ node_id: nodeId }), // Sending node_id in the body
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch. Status: ${response.status}`);
+      }
+
+      const newData = (await response.json()) as ApiResponseItem[];
+
+      // Compare new data with current data to find new items
+      const additionalItems = newData.slice(currentData.length);
+
+      if (additionalItems.length > 0) {
+        currentData = [...currentData, ...additionalItems]; // Update current data
+
+        // Invoke the callback with the latest partial results
+        onPartialResult(currentData);
+      }
+
+      // If we have fewer than n items, keep polling
+      if (currentData.length < n) {
+        setTimeout(() => void poll(), interval); // NOTE: Had to modify this
+      }
+
+    } catch (error) {
+      /* empty */
+    }
+  };
+
+  await poll(); // Start polling immediately
+};
+

@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable */
+
 import { Button } from '@/components/ui/button';
 import React, {useCallback, useRef, useState} from 'react';
 import ReactFlow, {
@@ -273,9 +275,9 @@ function generateL2NodesAndEdges(parentNode: Node, data: {
   const buffer = 200;
   const parentCoordinates = parentNode.position;
 
-  for (const [index, item] of data.entries()) {
+  // for (const [index, item] of data.entries()) {
 
-  }
+  // }
 
   return { nodes: [], edges: [] };
 }

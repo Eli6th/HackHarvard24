@@ -1,5 +1,8 @@
+/* eslint-disable */
+
 import { Button } from '@/components/ui/button';
 import { TypographyH3, TypographyP } from '@/components/ui/typography';
+import { pollApiUntilNItemsPost } from '@/lib/api';
 import Image from 'next/image';
 import React, { memo, useEffect, useState } from 'react';
 import {
@@ -72,10 +75,23 @@ function L1Node({ data }: NodeProps<{
             </Button>
             <Button
               variant="ghost"
-              className="absolute -right-12 top-[88px] rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
+              className="absolute -right-12 top-11 rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
               style={{ height: '40px', width: '40px' }}
-              onClick={() => setIsExpanded(true)}
-            >
+              onClick={() => {
+                const nodeId = 'your-node-id'; // replace with the actual node ID or fetch dynamically
+                const url = '/your-api-endpoint'; // replace with your actual POST API endpoint
+
+                pollApiUntilNItemsPost(
+                  url,
+                  10, // number of items to wait for
+                  nodeId, // node ID to send in the request body
+                  (data) => {
+                    console.log('Partial result:', data); // Handle partial results here
+                    // You can update state or perform any other actions with the returned data
+                  }
+                );
+              }}
+>
               <Icons.expand size={24} className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-5 h-5" />
             </Button>
           </>
