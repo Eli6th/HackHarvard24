@@ -14,3 +14,5 @@ NUM_QUESTIONS = 3
 SUGGESTED_QUESTION_PROMPT = f"Generate {NUM_QUESTIONS} followup questions that a user might ask about the finding. The questions should focus on clarifications of difficult terms or implications of causal relationships found. Each question should be delimited by a {DELIMITER} before and after (this is important {DELIMITER} before and {DELIMITER} after)"
 LEVEL_ONE_HALF_PROMPT = "Use the previous responses in the thread conversation in order to answer the question. Limit the response to <= 300 characters. Cite any sources or papers when referring to external concepts/ideas."
 LEVEL_ONE_PROMPT_SUFFIX = "Be precise with your results. Any plots should be made with matplotlib and seaborn and should have clearly defined axes and should not be convoluted by using heat maps and alpha values for appropriate graph types. Plots should use histograms for continuous values, and bar graphs for discrete plots. Aggregation of values should also be used for very volatile data values over time."
+
+RETRIES = 5 # number of times to retry prompt before raising error
