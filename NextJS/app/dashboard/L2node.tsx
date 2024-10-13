@@ -14,8 +14,32 @@ function L2Node({ data }: NodeProps<{
 }>) {
   const [isExpanded, setIsExpanded] = useState(false);
   const edgeHandler = data.edgePoint === 'left' ? Position.Left : data.edgePoint === 'right' ? Position.Right : data.edgePoint === 'top' ? Position.Top : Position.Bottom;
+  const truncatedText = (() => {
+  const closingParenIndex = data.text.indexOf(")");
+  if (closingParenIndex !== -1) {
+    return data.text.substring(0, closingParenIndex + 1); // Include the closing parenthesis
+  }
+  return data.text; // If no closing parenthesis, return the full text
+})();
   const MarkdownRenderer = (markdownText: string) => {
-    return <ReactMarkdown>{markdownText}</ReactMarkdown>;
+    return <ReactMarkdown components={{
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: '#1E90FF', // Customize link color
+              textDecoration: 'none', // Remove underline if desired
+              borderBottom: '1px dashed #1E90FF', // Example of a custom underline
+            }}
+          >
+            {children}
+          </a>
+        ),
+      }}>
+      {markdownText}
+    </ReactMarkdown>;
   };
 
   return (
@@ -40,7 +64,9 @@ function L2Node({ data }: NodeProps<{
       )}
       {!isExpanded && (
         <div style={{ marginTop: 5 }} className="flex flex-col gap-4">
-          {MarkdownRenderer(data.text.length > 200 ? `${data.text.substring(0, 200)}...` : data.text)}
+          {
+            MarkdownRenderer(truncatedText)
+          }
         </div>
       )}
       <Handle type="target" position={edgeHandler} id={edgeHandler} />

@@ -302,7 +302,7 @@ def _l2_create_node(hub: Hub, thread_id: str, prompt: str, parent_node: Node, ur
     summary, title = tuple(re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0]))
     # print(f"For the following prompt: {prompt}\nTitle: {title}\nSummary: {summary}\n\n\n")
 
-    final_summary = f"Url: [{article_title}]({url})\n\n\n{summary}"
+    final_summary = f"[{article_title}]({url})\n\n\n{summary}"
     # Create the base of the Node in DB
     new_node = Node(
         prompt=prompt,
