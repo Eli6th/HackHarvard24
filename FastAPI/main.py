@@ -5,7 +5,7 @@ import uuid
 from uuid import UUID
 import json
 from utils import ExaSearchResponse
-import threading
+import multiprocessing
 import uvicorn
 from sqlalchemy.orm import Session as _Session
 
@@ -91,10 +91,21 @@ async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
 
 @app.get("/runfull")
 async def runfull():
-    thread = threading.Thread(target=run_utils_main)
-    thread.start()
+    # Create a new process using multiprocessing
+    process = multiprocessing.Process(target=run_utils_main)
+    process.start()
 
-def run_utils_main():
+def run_utils_main( db: Session = next(get_db())):
+    
+    single_node = db.query(Node).filter(Node.parent_node_id == None).first()
+    l2_init(single_node.hub, single_node)
+    # print(f"For node {single_node.title} generated with prompt {single_node.prompt}, we receive the following results:")
+    # for result in response.results:
+    #     print(result)
+    #     # print(result.title)
+    #     # print(result.url)
+    #     # print(result.summary)
+    #     print()
     # level_one_nodes = initiate_level_one_multiprocess()
     # level_one_nodes = json.loads(level_one_nodes)
     # for node in level_one_nodes:
