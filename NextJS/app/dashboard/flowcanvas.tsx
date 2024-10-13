@@ -28,22 +28,279 @@ const nodeTypes = {
   L1: L1Node,
 };
 
-const initialNodes: Node[] = [
-  { id: '1', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 1', text: 'One day, while lounging beneath a tall oak tree, Felix overheard a conversation between two squirrels. They were chatting excitedly about a mysterious, enchanted maze deep in the heart of the forest. The rumor was that no animal had ever solved the maze and those who tried got lost forever, unable to escape its winding paths.', expanded: true, edgePoints: [false, true, true, false], questions: ['What is the name of the forest?', 'What is the name of the maze?', 'What is the name of the squirrels?', 'What is the name of the tree?'] } },
-  { id: '2', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 2', text: 'Node 2', expanded: false, edgePoints: [false, true, true, false], questions: ['What is the name of the forest?', 'What is the name of the maze?', 'What is the name of the squirrels?'] } },
-  { id: '3', type: 'L1', position: { x: 0, y: 0 }, data: { title: 'Node 3', text: 'Node 3', expanded: false, edgePoints: [false, true, true, false], questions: [] } },
-  { id: '4', type: 'L0', position: { x: 0, y: 0 }, data: { title: 'Node 4', data: [{title: 'Column 1', rows: ['Row 1', 'Row 2', 'Row 3']}, {title: 'Column 2', rows: ['Row 4', 'Row 5', 'Row 6']}, {title: 'Column 3', rows: ['Row 7', 'Row 8', 'Row 9']}] } },
-];
+// Example output from the API
+/**
+ * {
+    "id": "1550f53b-7256-4306-afd9-17fb56fef536",
+    "text": "The time series plot above shows the Humidity levels over time. You can observe fluctuations and a general trend of fluctuation around the mid-60% range. There are no distinct seasonal patterns visible at this scale, but the variation suggests normal day-to-day changes in humidity. If a more granular view of seasonal trends is needed, smoothing techniques or longer-term aggregations could be applied.",
+    "title": "Humidity fluctuates around mid-60% without seasonality.",
+    "parent_node_id": null,
+    "images": [
+      {
+        "id": "5712be83-9009-4999-9b85-73423e15a5e7",
+        "url": "http://localhost:8001/images/5712be83-9009-4999-9b85-73423e15a5e7"
+      }
+    ],
+    "questions": [
+      {
+        "id": "d61b4fe5-73ac-45af-8ebf-e2ed29838ec2",
+        "content": "What causes the fluctuations in humidity levels?"
+      },
+      {
+        "id": "bb7d3461-dc61-44ba-a20f-f67db6438137",
+        "content": "Are there any external factors influencing humidity?"
+      },
+      {
+        "id": "7248d74e-ef99-40e9-be49-a2007bcbd11e",
+        "content": "How does humidity impact weather conditions?"
+      }
+    ]
+  }
+ */
+
+const testData = [
+  {
+    "id": "dde3f55d-b244-4449-8b0c-8557a07c3216",
+    "prompt": "Create a contingency table for the relationship between Location and Rain Tomorrow status.Be precise with your results. Any plots should be made with matplotlib and seaborn and should have clearly defined axes and should not be convoluted by using heat maps and alpha values for appropriate graph types. Plots should use histograms for continuous values, and bar graphs for discrete plots. Aggregation of values should also be used for very volatile data values over time.Create a contingency table for the relationship between Location and Rain Tomorrow status.",
+    "text": "The contingency table for the relationship between \"Location\" and \"Rain Tomorrow\" is as follows:\n\n| Location         | No Rain (0) | Rain (1) |\n|------------------|-------------|----------|\n| Austin           | 2871        | 784      |\n| Charlotte        | 2845        | 810      |\n| Chicago          | 2818        | 837      |\n| Columbus         | 2832        | 823      |\n| Dallas           | 2866        | 789      |\n| Denver           | 2859        | 796      |\n| Fort Worth       | 2882        | 773      |\n| Houston          | 2880        | 775      |\n| Indianapolis     | 2849        | 806      |\n| Jacksonville     | 2828        | 827      |\n| Los Angeles      | 2851        | 804      |\n| New York         | 2893        | 762      |\n| Philadelphia     | 2832        | 823      |\n| Phoenix          | 2835        | 820      |\n| San Antonio      | 2892        | 763      |\n| San Diego        | 2791        | 864      |\n| San Francisco    | 2827        | 828      |\n| San Jose         | 2835        | 820      |\n| Seattle          | 2840        | 815      |\n| Washington D.C.  | 2862        | 793      |\n\nThis table shows the count of days with and without rain for each location.",
+    "title": "Most cities have more dry days than rainy ones.",
+    "thread_id": "thread_pF8fO6D26ZUIaI0NHHO3Yz6J",
+    "parent_node_id": null,
+    "images": [],
+    "questions": [
+      {
+        "id": "30628724-d059-4778-ae59-98c99e64e483",
+        "content": "Why do some cities have fewer rainy days?"
+      },
+      {
+        "id": "70313bf7-25c3-4764-b045-379a32388f0a",
+        "content": "What factors influence rain distribution among cities?"
+      },
+      {
+        "id": "dda96526-f001-4a53-8696-aa93863eced7",
+        "content": "Could local geography affect rain frequency?"
+      }
+    ]
+  },
+  {
+    "id": "9cf3df01-2ca2-44fc-b7fe-faa2f4d4d2b2",
+    "prompt": "Perform a correlation analysis across all numerical variables to identify strongly related features.Be precise with your results. Any plots should be made with matplotlib and seaborn and should have clearly defined axes and should not be convoluted by using heat maps and alpha values for appropriate graph types. Plots should use histograms for continuous values, and bar graphs for discrete plots. Aggregation of values should also be used for very volatile data values over time.Perform a correlation analysis across all numerical variables to identify strongly related features.",
+    "text": "There are no strong correlations (absolute correlation coefficient > 0.75) among the numerical variables in this dataset. Therefore, there are no strongly related features according to the provided threshold.",
+    "title": "No strong correlations found between variables.",
+    "thread_id": "thread_fZ33ywMwseSZfQTp1MEH4XCg",
+    "parent_node_id": null,
+    "images": [
+      {
+        "id": "82435f0f-0255-4c5d-99f5-04fd1af41d67",
+        "url": "http://localhost:8001/images/82435f0f-0255-4c5d-99f5-04fd1af41d67"
+      }
+    ],
+    "questions": [
+      {
+        "id": "e8c041c5-17ef-4b7e-9088-4bf31ebaa021",
+        "content": "What is a strong correlation threshold and why 0.75?"
+      },
+      {
+        "id": "1099545a-8b3a-4fd9-8280-0c9189164312",
+        "content": "What could weak correlations indicate in this data?"
+      },
+      {
+        "id": "c6cf4731-1d9a-4c3f-8ead-0ba3100f507f",
+        "content": "Are there any non-linear relationships missed?"
+      }
+    ]
+  },
+  {
+    "id": "c5c1a905-b522-4cbd-9d1d-a1e7a77cefd0",
+    "prompt": "Combine Temperature and Humidity to create a new feature \"Heat Index\" and analyze its distribution.Be precise with your results. Any plots should be made with matplotlib and seaborn and should have clearly defined axes and should not be convoluted by using heat maps and alpha values for appropriate graph types. Plots should use histograms for continuous values, and bar graphs for discrete plots. Aggregation of values should also be used for very volatile data values over time.Combine Temperature and Humidity to create a new feature \"Heat Index\" and analyze its distribution.",
+    "text": "The Heat Index distribution is right-skewed, with the majority of values clustering around 60 to 100. Beyond this range, the frequency of higher Heat Index values decreases. This indicates that while extreme heat conditions occur, they are less frequent compared to more moderate levels. This pattern is typical where there are occasional spikes of high heat, but most instances remain within the moderate zone.",
+    "title": "Heat Index peaks at 60-100, with rare high extremes.",
+    "thread_id": "thread_TtSzF5F4ZdF8xK1xMQ0pHP7m",
+    "parent_node_id": null,
+    "images": [
+      {
+        "id": "238f6a48-2c3c-4f90-bf37-531db4780b23",
+        "url": "http://localhost:8001/images/238f6a48-2c3c-4f90-bf37-531db4780b23"
+      }
+    ],
+    "questions": [
+      {
+        "id": "ede9af51-c988-4e3c-b6bf-04e4b6fa2192",
+        "content": "What factors cause the Heat Index to exceed 100?"
+      },
+      {
+        "id": "acb7584a-8a8e-4143-bbf1-d5fda1c510ad",
+        "content": "How does the Heat Index affect daily activities?"
+      },
+      {
+        "id": "7d31d0f3-4105-4e66-8a4b-9cd98914a6b8",
+        "content": "Can high Heat Index impacts be predicted regionally?"
+      }
+    ]
+  },
+  {
+    "id": "6cf47657-a9b1-449f-846b-94628b3bd424",
+    "prompt": "Calculate the correlation between Temperature and Precipitation to explore their relationship.Be precise with your results. Any plots should be made with matplotlib and seaborn and should have clearly defined axes and should not be convoluted by using heat maps and alpha values for appropriate graph types. Plots should use histograms for continuous values, and bar graphs for discrete plots. Aggregation of values should also be used for very volatile data values over time.Calculate the correlation between Temperature and Precipitation to explore their relationship.",
+    "text": "The correlation between Temperature and Precipitation is approximately 0.0037, indicating essentially no linear relationship between these two variables. The scatter plot above visually reinforces this, as there is no discernible trend or pattern.",
+    "title": "Temperature-Precipitation correlation is negligible.",
+    "thread_id": "thread_d2QfIwadesec0nx3MXock7mh",
+    "parent_node_id": null,
+    "images": [
+      {
+        "id": "2052f50d-4d1e-44e4-897a-2a6d9d047dce",
+        "url": "http://localhost:8001/images/2052f50d-4d1e-44e4-897a-2a6d9d047dce"
+      }
+    ],
+    "questions": [
+      {
+        "id": "f7fbdca7-0177-4755-8687-40f11cbb67d5",
+        "content": "What does negligible correlation imply for planning?"
+      },
+      {
+        "id": "b6a06f58-5f9a-4b39-8154-5932b4ddbda8",
+        "content": "Can Temperature affect Precipitation in other ways?"
+      },
+      {
+        "id": "0f71a27a-8377-4ed5-a6ca-6653bf5afea0",
+        "content": "Are there stronger relationships with other variables?"
+      }
+    ]
+  },
+  {
+    "id": "1550f53b-7256-4306-afd9-17fb56fef536",
+    "prompt": "Generate a time series plot for Humidity levels over time to identify seasonal trends.Be precise with your results. Any plots should be made with matplotlib and seaborn and should have clearly defined axes and should not be convoluted by using heat maps and alpha values for appropriate graph types. Plots should use histograms for continuous values, and bar graphs for discrete plots. Aggregation of values should also be used for very volatile data values over time.Generate a time series plot for Humidity levels over time to identify seasonal trends.",
+    "text": "The time series plot above shows the Humidity levels over time. You can observe fluctuations and a general trend of fluctuation around the mid-60% range. There are no distinct seasonal patterns visible at this scale, but the variation suggests normal day-to-day changes in humidity. If a more granular view of seasonal trends is needed, smoothing techniques or longer-term aggregations could be applied.",
+    "title": "Humidity fluctuates around mid-60% without seasonality.",
+    "thread_id": "thread_L5pCoST6xxGXMUjK0mm2Yrrv",
+    "parent_node_id": null,
+    "images": [
+      {
+        "id": "5712be83-9009-4999-9b85-73423e15a5e7",
+        "url": "http://localhost:8001/images/5712be83-9009-4999-9b85-73423e15a5e7"
+      }
+    ],
+    "questions": [
+      {
+        "id": "d61b4fe5-73ac-45af-8ebf-e2ed29838ec2",
+        "content": "What causes the fluctuations in humidity levels?"
+      },
+      {
+        "id": "bb7d3461-dc61-44ba-a20f-f67db6438137",
+        "content": "Are there any external factors influencing humidity?"
+      },
+      {
+        "id": "7248d74e-ef99-40e9-be49-a2007bcbd11e",
+        "content": "How does humidity impact weather conditions?"
+      }
+    ]
+  }
+]
+
+function createL0Node(data: {
+  id: string;
+  title: string;
+  data: { title: string; rows: string[] }[];
+}): Node {
+  return {
+    id: data.id,
+    type: 'L0',
+    position: { x: 0, y: 0 },
+    data: { title: data.title, data: data.data }
+  };
+}
+
+function generateL1NodesAndEdges(parentNode: Node, data: {
+  id: string;
+  text: string;
+  title: string;
+  prompt: string;
+  thread_id: string;
+  parent_node_id: string | null;
+  images: {
+    id: string;
+    url: string;
+  }[];
+  questions: {
+    id: string;
+    content: string;
+  }[];
+}[]): { nodes: Node[], edges: Edge[] } {
+  const radius = 400;
+  const parentCoordinates = parentNode.position;
+
+  const edges: Edge[] = [];
+  const nodes: Node[] = [];
+  for (const [index, item] of data.entries()) {
+    const angle = ((index + 1) / data.length) * 2 * Math.PI;
+    let edgePoints: boolean[] = [];
+    let y_buffer = 0;
+    let handles: string[] = ['top', 'bottom'];
+    if (angle < Math.PI / 4 || angle > 7 * Math.PI / 4) {
+      edgePoints = [true, true, true, false];
+      handles = ['bottom', 'top'];
+    } else if (angle >= Math.PI / 4 && angle < 3 * Math.PI / 4) {
+      edgePoints = [false, true, true, true];
+      handles = ['left', 'right'];
+    } else if (angle >= 3 * Math.PI / 4 && angle < 5 * Math.PI / 4) {
+      edgePoints = [true, false, true, true];
+      y_buffer = 200;
+      handles = ['bottom', ''];
+    } else {
+      edgePoints = [true, true, false, true];
+      handles = ['left', 'bottom'];
+    }
+
+    edges.push({
+      id: `${parentNode.id}-to-${item.id}`,
+      source: parentNode.id,
+      target: item.id,
+      type: 'bezier',
+      markerEnd: {
+        type: MarkerType.Arrow,
+        width: 20,
+        height: 20
+      },
+      style: {
+        strokeWidth: 3,
+      },
+      sourceHandle: handles[0],
+      targetHandle: handles[1],
+    });
+
+    const node: Node = {
+      id: item.id,
+      type: 'L1',
+      position: {
+        x: (parentCoordinates.x - 125) + Math.sin(angle) * radius,
+        y: (parentCoordinates.y - 150 + y_buffer) + Math.cos(angle) * radius
+      },
+      data: {
+        title: item.title,
+        text: item.text,
+        expanded: false,
+        edgePoints: edgePoints,
+        questions: item.questions.map((question) => question.content),
+      }
+    };
+
+    nodes.push(node);
+  }
+
+  return { nodes, edges };
+}
 
 const flowKey = 'flow';
 
 function FlowCanvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>(initialNodes) as [
+  const l0Node = createL0Node({ id: 'l0-node', title: 'Node 4', data: [{title: 'Column 1', rows: ['Row 1', 'Row 2', 'Row 3']}, {title: 'Column 2', rows: ['Row 4', 'Row 5', 'Row 6']}, {title: 'Column 3', rows: ['Row 7', 'Row 8', 'Row 9']}]});
+  const { nodes: initialNodes, edges: initialEdges } = generateL1NodesAndEdges(l0Node, testData);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>([l0Node, ...initialNodes]) as [
     Node[],
     React.Dispatch<React.SetStateAction<Node[]>>,
     (changes: NodeChange[]) => void
   ];
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]) as [
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>(initialEdges) as [
     Edge[],
     React.Dispatch<React.SetStateAction<Edge[]>>,
     (changes: EdgeChange[]) => void
