@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
-import React, { useCallback, useState } from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -23,6 +23,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import L1Node from './L1node';
 import L0node from './L0node';
+import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse} from "@/lib/api";
 
 const nodeTypes = {
   L0: L0node,
@@ -226,7 +227,7 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
     content: string;
   }[];
 }[]): { nodes: Node[], edges: Edge[] } {
-  const radius = 400;
+  const radius = 800;
   const parentCoordinates = parentNode.position;
 
   const edges: Edge[] = [];
@@ -263,6 +264,7 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
         expanded: false,
         edgePoints: edgePoints,
         questions: item.questions.map((question) => question.content),
+        images: item.images.map((image) => image.url),
       }
     };
 
@@ -292,22 +294,143 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
 
 const flowKey = 'flow';
 
-function FlowCanvas() {
-  const l0Node = createL0Node({ id: 'l0-node', title: 'Node 4', data: [{title: 'Column 1', rows: ['Row 1', 'Row 2', 'Row 3']}, {title: 'Column 2', rows: ['Row 4', 'Row 5', 'Row 6']}, {title: 'Column 3', rows: ['Row 7', 'Row 8', 'Row 9']}]});
-  const { nodes: initialNodes, edges: initialEdges } = generateL1NodesAndEdges(l0Node, testData);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>([l0Node, ...initialNodes]) as [
+function FlowCanvas() {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null); // Track upload status
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const populatedNodeIds = useRef<Set<string>>(new Set()); // Keep track of populated nodes
+  const usedItemIds = useRef<Set<string>>(new Set()); // Track used item ids
+
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>([]) as [
     Node[],
     React.Dispatch<React.SetStateAction<Node[]>>,
     (changes: NodeChange[]) => void
   ];
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>(initialEdges) as [
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]) as [
     Edge[],
     React.Dispatch<React.SetStateAction<Edge[]>>,
     (changes: EdgeChange[]) => void
   ];
   const [rfInstance, setRfInstance] = useState<any>(null);
-  const { setCenter, getNode, setViewport } = useReactFlow();
+  const {setCenter, getNode, setViewport} = useReactFlow();
+
+  // Poll API to fetch nodes and update progressively
+  const pollHubNodes = useCallback(async (hubId: string) => {
+    const url = `http://localhost:8001/hubs/${hubId}/nodes`;
+
+    // Callback to handle partial data updates
+    const handlePartialResult = (items: ApiResponseItem[]) => {
+      // Iterate over the new items, but only update one node per item
+      items.forEach((item) => {
+        console.log(item);
+
+        if (!usedItemIds.current.has(item.id)) {
+          console.log("not used");
+
+          setNodes((nds) => {
+            // Find all unpopulated nodes (nodes that still have 'Loading...')
+            const unpopulatedIndices = nds
+              .map((node, index) =>
+                node.data.title === 'Loading...' && !populatedNodeIds.current.has(node.id) ? index : -1
+              )
+              .filter((index) => index !== -1); // Get valid indices
+
+            console.log("Unpopulated nodes indices:", unpopulatedIndices);
+
+            if (unpopulatedIndices.length > 0 && items.length > 0) {
+              // We will only update the number of nodes equal to the number of items
+              const updatedNodes = [...nds]; // Create a shallow copy of nodes
+              const nonUsedItems = items.filter((item) => !usedItemIds.current.has(item.id));
+
+              unpopulatedIndices.slice(0, nonUsedItems.length).forEach((unpopulatedIndex, i) => {
+                const currentItem = nonUsedItems[i];
+
+                if (currentItem) {
+                  // Update that specific node with the current item
+                  updatedNodes[unpopulatedIndex] = {
+                    ...updatedNodes[unpopulatedIndex],
+                  data: {
+                    ...updatedNodes[unpopulatedIndex].data,
+                    title: currentItem.title,
+                    text: currentItem.text,
+                    questions: currentItem.questions.map((question) => question.content),
+                    images: currentItem.images.map((image) => image.url),
+                  },
+                  };
+
+                  // Mark the node as populated and the item as used
+                  populatedNodeIds.current.add(updatedNodes[unpopulatedIndex]?.id ?? '');
+                  usedItemIds.current.add(currentItem.id);
+                }
+              });
+
+              return updatedNodes;
+            }
+
+            return nds; // Return original nodes if no unpopulated nodes found
+          });
+        }
+      });
+
+    };
+
+
+    try {
+      await pollApiUntilNItems(url, 5, handlePartialResult); // Pass the callback to handle partial data
+    } catch (error) { /* empty */
+    }
+  }, [setNodes]);
+
+
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      setUploadSuccess(null);
+      populatedNodeIds.current.clear(); // Clear previous populated node tracking
+
+      // const l0Node = createL0Node({ id: 'l0-node', title: 'Node 4', data: [{title: 'Column 1', rows: ['Row 1', 'Row 2', 'Row 3']}, {title: 'Column 2', rows: ['Row 4', 'Row 5', 'Row 6']}, {title: 'Column 3', rows: ['Row 7', 'Row 8', 'Row 9']}]});
+      // const { nodes: initialNodes, edges: initialEdges } = generateL1NodesAndEdges(l0Node, testData);
+      try {
+        const sessionResponse: SessionResponse = await createSession('http://localhost:8001/session/start', file);
+        const l0Node = createL0Node({
+          id: sessionResponse.hub,
+          title: file.name,
+          data: {}
+        });
+
+        testData.map((item) => {
+          item.title = "Loading..."
+          item.id = String(Math.random())
+          item.text = ""
+          item.questions = []
+          item.images = []
+          item.thread_id = ""
+          item.parent_node_id = null
+          item.prompt = ""
+        });
+
+        const {nodes: initialNodes, edges: initialEdges} = generateL1NodesAndEdges(l0Node, testData);
+        await pollHubNodes(sessionResponse.hub); // Start polling for the hub's nodes
+        setNodes([l0Node, ...initialNodes]);
+        setEdges([...initialEdges]);
+
+
+        setUploadSuccess(true);
+      } catch (error) {
+        setUploadSuccess(false);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  }, [pollHubNodes, setNodes]);
 
   const onConnect = useCallback(
     (params: Connection) =>
@@ -335,9 +458,9 @@ function FlowCanvas() {
     setNodes((nds) =>
       nds.map((n) => {
         if (n.id === node.id) {
-          return { ...n, data: { ...n.data, isHighlighted: true } };
+          return {...n, data: {...n.data, isHighlighted: true}};
         }
-        return { ...n, data: { ...n.data, isHighlighted: false } };
+        return {...n, data: {...n.data, isHighlighted: false}};
       }),
     );
 
@@ -349,7 +472,7 @@ function FlowCanvas() {
     const nodeObj = getNode(node.id);
     if (nodeObj) {
       // Center the view on the clicked node
-      setCenter(nodeObj.position.x, nodeObj.position.y, { zoom: 0.95, duration: 1500 });
+      setCenter(nodeObj.position.x, nodeObj.position.y, {zoom: 0.95, duration: 1500});
     }
   }, [getNode, setCenter, setNodes]);
 
@@ -374,11 +497,11 @@ function FlowCanvas() {
           };
 
           if (flow) {
-            const { x = 0, y = 0, zoom = 1 } = flow.viewport ?? {};
+            const {x = 0, y = 0, zoom = 1} = flow.viewport ?? {};
             if (flow.nodes) setNodes(flow.nodes);
             if (flow.edges) setEdges(flow.edges);
             if (typeof setViewport === 'function') {
-              setViewport({ x, y, zoom });
+              setViewport({x, y, zoom});
             }
           }
         }
@@ -389,30 +512,63 @@ function FlowCanvas() {
   }, [setNodes, setEdges, setViewport]);
 
   return (
-    <div style={{ width: '100%', height: '95vh' }}>
+    <div style={{width: '100%', height: '95vh', position: 'relative'}}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodesChange={(changes) => {
-          onNodesChange(changes);
-        }}
+        onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onInit={setRfInstance}
         onNodeClick={handleNodeClick}
         fitView
-        fitViewOptions={{ padding: 2 }}
-        // nodesConnectable={false}
-        // nodesDraggable={false}
+        fitViewOptions={{padding: 2}}
       >
         <Panel position="top-right" className="flex gap-2">
           <Button onClick={onSave}>Save</Button>
           <Button onClick={onRestore}>Restore</Button>
         </Panel>
-        <Controls />
-        <Background color="#000000" variant={BackgroundVariant.Cross} gap={12} size={1} />
+        <Controls/>
+        <Background color="#000000" variant={BackgroundVariant.Cross} gap={12} size={1}/>
       </ReactFlow>
+
+      {nodes.length === 0 && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(128, 128, 128, 0.5)', // Blur effect
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexDirection: 'column',
+        }}>
+          <h1 style={{fontSize: '24px', color: '#fff', marginBottom: '20px'}}>Upload a CSV to start</h1>
+
+          <input
+            type="file"
+            ref={fileInputRef}  // Assign ref to the input
+            accept=".csv"
+            /* eslint-disable-next-line @typescript-eslint/no-misused-promises */
+            onChange={handleFileUpload}
+            disabled={isUploading}
+            style={{display: 'none'}} // Hide the file input
+          />
+
+          {isUploading ? (
+            <p style={{color: '#fff'}}>Uploading...</p>
+          ) : uploadSuccess === true ? (
+            <p style={{color: '#00FF00'}}>Upload successful!</p>
+          ) : uploadSuccess === false ? (
+            <p style={{color: '#FF0000'}}>Upload failed. Try again.</p>
+          ) : (
+            <Button onClick={triggerFileInput}>Upload CSV</Button>  // Use button to trigger file input
+          )}
+        </div>
+      )}
     </div>
   );
 }
