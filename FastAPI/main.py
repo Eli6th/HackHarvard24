@@ -13,7 +13,7 @@ from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as _Session
 from utils import (ExaSearchResponse, create_assistant_for_file, get_db,
-                   l1_init, l2_init)
+                   l1_init, l2_init, create_level_one_half_node)
 
 app = FastAPI()
 
