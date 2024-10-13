@@ -84,6 +84,24 @@ async def start_session(
         }
 
 
+
+@app.get("/question/{question_id}", response_model=NodeResponse)
+async def answer_question(question_id: str, db: _Session = Depends(get_db)):
+    """
+    Get the question and answer for a specific node.
+    """
+
+    question = db.query(Question).filter(Question.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    prev_node = db.query(Node).filter(Node.id == question.node_id).first()
+    if not prev_node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    new_node = create_level_one_half_node(question, prev_node)
+    return new_node
+
 @app.get("/hubs/{hub_id}/nodes", response_model=List[NodeResponse])
 async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     """
