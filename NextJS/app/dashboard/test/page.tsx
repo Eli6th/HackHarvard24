@@ -131,7 +131,7 @@ function FlowCanvas() {
             };
 
             // Mark the node as populated and the item as used
-            populatedNodeIds.current.add(updatedNodes[unpopulatedIndex].id);
+            populatedNodeIds.current.add(updatedNodes[unpopulatedIndex]?.id ?? '');
             usedItemIds.current.add(currentItem.id);
           }
         });

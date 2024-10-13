@@ -46,13 +46,13 @@ function L1Node({ data }: NodeProps<{
         </div>
         <Handle type={data.edgePoints[0] ? 'source' : 'target'} position={Position.Left} id="left" />
         <Handle type={data.edgePoints[1] ? 'source' : 'target'} position={Position.Bottom} id="bottom" />
-        <Handle type={data.edgePoints[2] ? 'source' : 'target'} position={Position.Right} id="right-target" />
-        <Handle type={data.edgePoints[3] ? 'source' : 'target'} position={Position.Top} id="top-target" />
+        <Handle type={data.edgePoints[2] ? 'source' : 'target'} position={Position.Right} id="right" />
+        <Handle type={data.edgePoints[3] ? 'source' : 'target'} position={Position.Top} id="top" />
         {data.isHighlighted && !openQuestions && (
           <>
             <Button
               variant="ghost"
-              className="absolute -right-12 -top-2 rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
+              className="absolute -right-12 top-0 rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
               style={{ height: '40px', width: '40px', fontSize: '20px' }}
               onClick={() => setOpenQuestions(true)}
             >
@@ -60,7 +60,7 @@ function L1Node({ data }: NodeProps<{
             </Button>
             <Button
               variant="ghost"
-              className="absolute -right-[5rem] top-[calc(1/3 + 1rem)] rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
+              className="absolute -right-12 top-11 rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
               style={{ height: '40px', width: '40px' }}
               onClick={() => setIsExpanded(true)}
             >
@@ -68,7 +68,7 @@ function L1Node({ data }: NodeProps<{
             </Button>
             <Button
               variant="ghost"
-              className="absolute -right-12 -bottom-3 rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
+              className="absolute -right-12 top-[88px] rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
               style={{ height: '40px', width: '40px' }}
               onClick={() => setIsExpanded(true)}
             >
@@ -163,8 +163,8 @@ function L1Node({ data }: NodeProps<{
         {data.imageSrc && <Image src={data.imageSrc} alt="expand" width={750} height={500} />}
         <Handle type={data.edgePoints[0] ? 'source' : 'target'} position={Position.Left} id="left" />
         <Handle type={data.edgePoints[1] ? 'source' : 'target'} position={Position.Bottom} id="bottom" />
-        <Handle type={data.edgePoints[2] ? 'source' : 'target'} position={Position.Right} id="right-target" />
-        <Handle type={data.edgePoints[3] ? 'source' : 'target'} position={Position.Top} id="top-target" />
+        <Handle type={data.edgePoints[2] ? 'source' : 'target'} position={Position.Right} id="right" />
+        <Handle type={data.edgePoints[3] ? 'source' : 'target'} position={Position.Top} id="top" />
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ import ReactFlow, {
   type NodeChange,
   type EdgeChange,
   type Connection,
+  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import L1Node from './L1node';
@@ -234,39 +235,21 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
     const angle = ((index + 1) / data.length) * 2 * Math.PI;
     let edgePoints: boolean[] = [];
     let y_buffer = 0;
-    let handles: string[] = ['top', 'bottom'];
+    let positions: Position[] = [Position.Top, Position.Bottom];
     if (angle < Math.PI / 4 || angle > 7 * Math.PI / 4) {
       edgePoints = [true, true, true, false];
-      handles = ['bottom', 'top'];
+      positions = [Position.Bottom, Position.Top];
     } else if (angle >= Math.PI / 4 && angle < 3 * Math.PI / 4) {
       edgePoints = [false, true, true, true];
-      handles = ['left', 'right'];
+      positions = [Position.Right, Position.Left];
     } else if (angle >= 3 * Math.PI / 4 && angle < 5 * Math.PI / 4) {
       edgePoints = [true, false, true, true];
       y_buffer = 200;
-      handles = ['bottom', ''];
+      positions = [Position.Top, Position.Bottom];
     } else {
       edgePoints = [true, true, false, true];
-      handles = ['left', 'bottom'];
+      positions = [Position.Left, Position.Right];
     }
-
-    edges.push({
-      id: `${parentNode.id}-to-${item.id}`,
-      source: parentNode.id,
-      target: item.id,
-      type: 'bezier',
-      markerEnd: {
-        type: MarkerType.Arrow,
-        width: 20,
-        height: 20
-      },
-      style: {
-        strokeWidth: 3,
-      },
-      sourceHandle: handles[0],
-      targetHandle: handles[1],
-    });
-
     const node: Node = {
       id: item.id,
       type: 'L1',
@@ -284,6 +267,24 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
     };
 
     nodes.push(node);
+
+    edges.push({
+      id: `${parentNode.id}-to-${item.id}`,
+      source: parentNode.id,
+      target: item.id,
+      type: 'default',
+      markerEnd: {
+        type: MarkerType.Arrow,
+        width: 20,
+        height: 20
+      },
+      style: {
+        strokeWidth: 3,
+      },
+      sourceHandle: positions[0],
+      targetHandle: positions[1],
+    });
+
   }
 
   return { nodes, edges };

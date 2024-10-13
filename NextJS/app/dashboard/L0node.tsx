@@ -51,8 +51,8 @@ function L0Node({ data }: NodeProps<{
 
         <Handle type={'source'} position={Position.Left} id="left" />
         <Handle type={'source'} position={Position.Bottom} id="bottom" />
-        <Handle type={'source'} position={Position.Right} id="right-target" />
-        <Handle type={'source'} position={Position.Top} id="top-target" />
+        <Handle type={'source'} position={Position.Right} id="right" />
+        <Handle type={'source'} position={Position.Top} id="top" />
       </div>
     );
   }
@@ -90,8 +90,8 @@ function L0Node({ data }: NodeProps<{
 
         <Handle type={'source'} position={Position.Left} id="left" />
         <Handle type={'source'} position={Position.Bottom} id="bottom" />
-        <Handle type={'source'} position={Position.Right} id="right-target" />
-        <Handle type={'source'} position={Position.Top} id="top-target" />
+        <Handle type={'source'} position={Position.Right} id="right" />
+        <Handle type={'source'} position={Position.Top} id="top" />
       </div>
     </div>
   );
