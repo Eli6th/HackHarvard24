@@ -4,13 +4,12 @@ from typing import Optional, BinaryIO, List
 import uuid
 from uuid import UUID
 import json
-from utils import ExaSearchResponse
 import threading
 import uvicorn
 from sqlalchemy.orm import Session as _Session
 
-from utils import l1_init, create_assistant_for_file, create_level_two_node, get_db
-from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image
+from .utils import l1_init, create_assistant_for_file, create_level_two_node, get_db, ExaSearchResponse, create_level_one_half_node
+from .database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image, Question
 
 app = FastAPI()
 
@@ -67,10 +66,30 @@ async def start_session(
         }
 
 
+@app.get("/question/{question_id}", response_model=NodeResponse)
+async def answer_question(question_id: str, db: _Session = Depends(get_db)):
+    """
+    Get the question and answer for a specific node.
+    """
+
+    question = db.query(Question).filter(Question.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    prev_node = db.query(Node).filter(Node.id == question.node_id).first()
+    if not prev_node:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    new_node = create_level_one_half_node(question, prev_node)
+    return new_node
+
 @app.get("/hubs/{hub_id}/nodes", response_model=List[NodeResponse])
 async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     """
     Get all nodes for the given hub ID.
+
+    Curl:
+    curl -X GET "http://127.0.0.1:8000/hubs/965b6e8d-f521-4ae5-859a-a6a9b4ef28e5/nodes
     """
     print(hub_id)
     # Fetch the hub by hub_id
