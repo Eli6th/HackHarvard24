@@ -8,11 +8,26 @@ from utils import ExaSearchResponse
 import threading
 import uvicorn
 from sqlalchemy.orm import Session as _Session
+from fastapi.middleware.cors import CORSMiddleware
 
 from utils import l1_init, create_assistant_for_file, create_level_two_node, get_db
 from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image
 
 app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:3001",
+    "http://localhost:300",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def startup_event():
