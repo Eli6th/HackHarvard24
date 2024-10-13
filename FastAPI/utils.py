@@ -50,6 +50,7 @@ def create_assistant_for_file(file: BinaryIO) -> Tuple[str, str]:
     Tuple[str, str]: A tuple containing the thread ID and assistant ID.
     """
 
+
     # Upload the file
     uploaded_file = client.files.create(
         file=file,

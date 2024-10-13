@@ -102,6 +102,7 @@ async def answer_question(question_id: str, db: _Session = Depends(get_db)):
     new_node = create_level_one_half_node(question, prev_node)
     return new_node
 
+
 @app.get("/hubs/{hub_id}/nodes", response_model=List[NodeResponse])
 async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     """
