@@ -32,7 +32,7 @@ function L0Node({ data }: NodeProps<{
           padding: 10,
           fontSize: 12,
           borderRadius: 10,
-          minWidth: 150,
+          minWidth: 300,
           maxWidth: 500,
           transition: 'border-width 0.1s ease',
         }}
@@ -66,8 +66,8 @@ function L0Node({ data }: NodeProps<{
           padding: 10,
           fontSize: 12,
           borderRadius: 10,
-          minWidth: 150,
-          maxWidth: 350,
+          minWidth: 300,
+          maxWidth: 500,
           transition: 'border-width 0.1s ease',
         }}
       >
@@ -87,7 +87,7 @@ function L0Node({ data }: NodeProps<{
             </div>
           ))}
         </div> */}
-        <div style={{ marginTop: 5, maxWidth: '350px', overflowX: 'auto' }} className="flex flex-row gap-2 border border-white rounded-lg p-2">
+        <div style={{ marginTop: 5, maxWidth: '500px', overflowX: 'auto' }} className="flex flex-row gap-2 border border-white rounded-lg p-2">
           {data.data.map((item) => (
             <div key={item.title} className="flex flex-col gap-2">
               <TypographyH4 key={item.title}>{item.title}</TypographyH4>
