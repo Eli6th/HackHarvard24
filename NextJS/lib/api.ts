@@ -47,7 +47,7 @@ export const pollApiUntilNItems = async (
   url: string,
   n: number,
   onPartialResult: (data: ApiResponseItem[]) => void, // callback for partial results
-  interval = 5000 // Default interval of 5 seconds
+  interval = 1000 // Default interval of 5 seconds
 ): Promise<void> => {
   let currentData: ApiResponseItem[] = []; // Keep track of the data we have
 
@@ -96,6 +96,33 @@ export const fetchQuestionNode = async (url: string, id: string): Promise<ApiRes
     return null;
   }
 };
+
+export const fetchQuestionNodePrompted = async (
+  url: string,
+  id: string,
+  prompt: string
+): Promise<ApiResponseItem | null> => {
+  try {
+    const response = await fetch(`${url}/${id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),  // Send the prompt in the body
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch. Status: ${response.status}`);
+    }
+
+    const data = (await response.json()) as ApiResponseItem;
+    return data;
+  } catch (error) {
+    console.error('Error fetching question node:', error);
+    return null;
+  }
+};
+
 
 export const fetchExaNodes = async (url: string, id: string): Promise<ApiResponseItem[] | null> => {
   try {
