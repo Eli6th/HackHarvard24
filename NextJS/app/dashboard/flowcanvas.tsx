@@ -32,6 +32,19 @@ const nodeTypes = {
   L2: L2Node,
 };
 
+const loadingText = [
+  "Step 1/9: Uploading file",
+  "Step 2/9: Validating file format",
+  "Step 3/9: Loading data into memory",
+  "Step 4/9: Cleaning and preprocessing data",
+  "Step 5/9: Analyzing descriptive statistics",
+  "Step 6/9: Performing feature extraction",
+  "Step 7/9: Calculating correlations",
+  "Step 8/9: Creating visualizations",
+  "Step 9/9: Finalizing and summarizing insights",
+  "Step 9/9: Almost there please be patient"
+];
+
 const testData = [
   {
     "id": "dde3f55d-b244-4449-8b0c-8557a07c3216",
@@ -311,6 +324,44 @@ function FlowCanvas() {
   const [rfInstance, setRfInstance] = useState<any>(null);
   const {setCenter, getNode, setViewport} = useReactFlow();
 
+  const intervalRef = useRef<NodeJS.Timer | null>(null); // Store the interval reference
+
+  // Function to update the loading text in unpopulated nodes
+  const updateLoadingText = () => {
+    setNodes((currentNodes) => {
+      return currentNodes.map((node) => {
+        if (node.data.title == "Loading...") {
+          const currentStep = parseInt(node.data.text[5], 10); // Extract step number from the string
+          if (currentStep < loadingText.length) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                text: loadingText[currentStep] // Move to the next step in loadingText
+              }
+            };
+          }
+        }
+        return node;
+      });
+    });
+  };
+
+  // Function to start the interval
+  const startInterval = () => {
+    if (intervalRef.current === null) {
+      intervalRef.current = setInterval(updateLoadingText, 10000); // Start interval every 10 seconds
+    }
+  };
+
+  // Function to stop the interval (for cleanup)
+  const stopInterval = () => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
   const addAdditionalNode = (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => {
     const parentNode = getNode(parent_node_id);
     if (!parentNode) {
@@ -357,7 +408,7 @@ function FlowCanvas() {
 
       data: {
         title: "Loading...",
-        text: "",
+        text: loadingText[0],
         expanded: false,
         questions: [],
         edgePoints: edgepoints,
@@ -366,6 +417,7 @@ function FlowCanvas() {
         addAdditionalNode: addAdditionalNode
       }
     };
+    console.log(newNode.data.text);
 
     // Create an edge between the parent node and the new node
     const newEdge: Edge = {
@@ -450,10 +502,21 @@ function FlowCanvas() {
             console.log("Unpopulated nodes indices:", unpopulatedIndices);
 
             if (unpopulatedIndices.length > 0 && items.length > 0) {
+
+              // We will change the loading screen text for unpopulated nodes
+              nds.forEach((node, index) => {
+                if (unpopulatedIndices.includes(index)) {
+                  console.log("updating node: ", nds[index].data.text);
+                  let loadingStep = parseInt(nds[index].data.text[5], 10);
+                  loadingStep = Math.max(loadingStep + 1, 5);
+                  console.log("New loading step: ", loadingStep);
+                  nds[index].data.text = loadingText[loadingStep - 1];
+                }
+              })
+
               // We will only update the number of nodes equal to the number of items
               const updatedNodes = [...nds]; // Create a shallow copy of nodes
               const nonUsedItems = items.filter((item) => !usedItemIds.current.has(item.id));
-
               unpopulatedIndices.slice(0, nonUsedItems.length).forEach((unpopulatedIndex, i) => {
                 const currentItem = nonUsedItems[i];
 
@@ -519,7 +582,7 @@ function FlowCanvas() {
         testData.map((item) => {
           item.title = "Loading..."
           item.id = String(Math.random())
-          item.text = ""
+          item.text = loadingText[0]
           item.questions = []
           item.images = []
           item.thread_id = ""
@@ -531,6 +594,9 @@ function FlowCanvas() {
         await pollHubNodes(sessionResponse.hub); // Start polling for the hub's nodes
         setNodes([l0Node, ...initialNodes]);
         setEdges([...initialEdges]);
+
+        // Start updating nodes every 10 seconds
+        startInterval();
 
 
         setUploadSuccess(true);
