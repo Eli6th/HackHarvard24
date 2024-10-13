@@ -262,11 +262,14 @@ def _l2_create_node(hub: Hub, thread_id: str, prompt: str, parent_node: Node, db
     # Save Node to DB
     db.add(new_node)
     db.commit()
+    db.refresh(new_node)
 
-    def to_dict(obj):
-        return {column.name: getattr(obj, column.name) for column in obj.__table__.columns}
+    # def to_dict(obj):
+    #     return {column.name: getattr(obj, column.name) for column in obj.__table__.columns}
 
-    print(to_dict(new_node))
+    # print(to_dict(new_node))
+
+    return new_node
 
 # Create L2 node
 def l2_init(hub: Hub, prev_node: Node):
@@ -303,6 +306,14 @@ def l2_init(hub: Hub, prev_node: Node):
 
     # Run each l2 node creation in parallel
     with multiprocessing.Pool() as pool:
-        pool.starmap(_l2_create_node, [
+        results = pool.starmap(_l2_create_node, [
             (hub, thread_id, prompt, prev_node) for prompt, thread_id in prompts_with_threads
         ])
+
+    pool.close()
+    pool.join()
+
+    # print(results)
+    # print([result.id for result in results])
+
+    return [result.id for result in results]

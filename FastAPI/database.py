@@ -131,9 +131,13 @@ class NodeResponse(BaseModel):
     text: str
     title: str
     thread_id: str
-    parent_node_id: Optional["NodeResponse"]  # Self-referential, use UUID
+    parent_node_id: Optional[str]  # Self-referential, use UUID
     images: List[ImageResponse]  # Now includes image responses
     questions: List[QuestionResponse]  # Now includes question responses
+
+    class Config:
+        orm_mode = True  # Enables Pydantic to use SQLAlchemy models
+        from_attributes = True  # This is required to use from_orm with SQLAlchemy models
 
 
 
