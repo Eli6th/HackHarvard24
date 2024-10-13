@@ -82,3 +82,17 @@ export const pollApiUntilNItems = async (
   await poll(); // Start polling immediately
 };
 
+export const fetchQuestionNode = async (url: string, id: string): Promise<ApiResponseItem | null> => {
+  try {
+    const response = await fetch(`${url}/${id}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch. Status: ${response.status}`);
+    }
+
+    const data = (await response.json()) as ApiResponseItem;
+    return data;
+  } catch (error) {
+    console.error('Error fetching question node:', error);
+    return null;
+  }
+};

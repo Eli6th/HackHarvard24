@@ -24,7 +24,7 @@ import 'reactflow/dist/style.css';
 import L1Node from './L1node';
 import L0node from './L0node';
 import L2Node from './L2node';
-import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse} from "@/lib/api";
+import {type ApiResponseItem, createSession, pollApiUntilNItems, type SessionResponse, fetchQuestionNode} from "@/lib/api";
 
 const nodeTypes = {
   L0: L0node,
@@ -238,6 +238,7 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
         edgePoints: edgePoints,
         questions: item.questions.map((question) => question.content),
         images: item.images.map((image) => image.url),
+        id: item.id
       }
     };
 
@@ -265,6 +266,7 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
   return { nodes, edges };
 }
 
+
 function generateL2NodesAndEdges(parentNode: Node, data: {
   id: string;
   text: string;
@@ -283,6 +285,7 @@ function generateL2NodesAndEdges(parentNode: Node, data: {
 const flowKey = 'flow';
 
 
+
 function FlowCanvas() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null); // Track upload status
@@ -290,7 +293,6 @@ function FlowCanvas() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const populatedNodeIds = useRef<Set<string>>(new Set()); // Keep track of populated nodes
   const usedItemIds = useRef<Set<string>>(new Set()); // Track used item ids
-
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
@@ -309,6 +311,121 @@ function FlowCanvas() {
   const [rfInstance, setRfInstance] = useState<any>(null);
   const {setCenter, getNode, setViewport} = useReactFlow();
 
+  const addAdditionalNode = (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => {
+    const parentNode = getNode(parent_node_id);
+    if (!parentNode) {
+      console.error(`Parent node with ID ${parent_node_id} not found`);
+      return;
+    }
+
+    const parentCoordinates = parentNode.position;
+    const parentData = parentNode.data;
+
+    // Define the new node's position relative to the parent node based on free space logic
+    let newNodePosition = { x: parentCoordinates.x, y: parentCoordinates.y - 200 }; // Default to the top of the parent node
+    let edgepoints: Boolean[] = []
+    let positions: Position[] = []
+    // Left, bottom, right, up (edgePoints order: left, bottom, right, top)
+    if (parentData.edgePoints[0] === false) {
+      // Left side is free, place the new node to the right of the parent node
+      newNodePosition = { x: parentCoordinates.x + 400, y: parentCoordinates.y };
+      edgepoints = [false, true, true, true]; // Mark the left edge as used
+      positions = [Position.Right, Position.Left]; // Connect from right to left
+    } else if (parentData.edgePoints[1] === false) {
+      // Bottom side is free, place the new node below the parent node
+      newNodePosition = { x: parentCoordinates.x, y: parentCoordinates.y - 400 }; // Place below
+      edgepoints = [true, false, true, true]; // Mark the bottom edge as used
+      positions = [Position.Top, Position.Bottom]; // Connect from bottom to top
+    } else if (parentData.edgePoints[2] === false) {
+      // Right side is free, place the new node to the left of the parent node
+      newNodePosition = { x: parentCoordinates.x - 400, y: parentCoordinates.y };
+      edgepoints = [true, true, false, true]; // Mark the right edge as used
+      positions = [Position.Left, Position.Right]; // Connect from left to right
+    } else if (parentData.edgePoints[3] === false) {
+      // Top side is free, place the new node above the parent node
+      newNodePosition = { x: parentCoordinates.x, y: parentCoordinates.y + 400 }; // Place above
+      edgepoints = [true, true, true, false]; // Mark the top edge as used
+      positions = [Position.Bottom, Position.Top]; // Connect from top to bottom
+    }
+
+
+    // Create a new node for the fetched question node
+    const newNode: Node = {
+      id: String(Math.random()),
+      type: level, // Assuming L2 for question nodes
+      position: newNodePosition,
+
+      data: {
+        title: "Loading...",
+        text: "",
+        expanded: false,
+        questions: [],
+        edgePoints: edgepoints,
+        images: [],
+        id: "",
+        addAdditionalNode: addAdditionalNode
+      }
+    };
+
+    // Create an edge between the parent node and the new node
+    const newEdge: Edge = {
+      id: `${parentNode.id}-to-${newNode.id}`,
+      source: parentNode.id,
+      target: newNode.id,
+      type: "default",
+      markerEnd: {
+        type: MarkerType.Arrow,
+        width: 20,
+        height: 20
+      },
+      style: {
+        strokeWidth: 3
+      },
+      sourceHandle: positions[0],
+      targetHandle: positions[1],
+    };
+
+    // Update the nodes and edges state
+    setNodes((nds) => [...nds, newNode]);
+    setEdges((eds) => [...eds, newEdge]);
+
+    if (level == "L1") {
+      handleQuestionClick(question, newNode.id);
+    } else {
+      // Handle L2 functionality
+    }
+  }
+
+  const handleQuestionClick = async (
+    question: { id: string; content: string },
+    node_id: string,
+  ): Promise<void> => {
+  try {
+    // Fetch the question node using its ID
+    const qNode = await fetchQuestionNode("http://localhost:8001/question", question.id);
+    setNodes((nds) => {
+      const shadow_nds = [...nds];
+      shadow_nds.forEach((node) => {
+        if (node.id == node_id) {
+          node.data =  {
+            ...node.data,
+            title: qNode.title,
+            text: qNode.text,
+            expanded: false,
+            questions: qNode.questions,
+            images: qNode.images,
+            id: qNode.id,
+          }
+        }
+      })
+
+      return shadow_nds
+    });
+
+  } catch (error) {
+    console.error("Error in handleQuestionClick:", error);
+  }
+};
   // Poll API to fetch nodes and update progressively
   const pollHubNodes = useCallback(async (hubId: string) => {
     const url = `http://localhost:8001/hubs/${hubId}/nodes`;
@@ -351,8 +468,10 @@ function FlowCanvas() {
                       ...updatedNodes[unpopulatedIndex]?.data,
                       title: currentItem.title,
                       text: currentItem.text,
-                      questions: currentItem.questions.map((question) => question.content),
+                      questions: currentItem.questions,
                       images: currentItem.images.map((image) => image.url),
+                      id: updatedNodes[unpopulatedIndex]?.id || `node-${unpopulatedIndex}`,
+                      addAdditionalNode: addAdditionalNode
                     },
                   };
 
