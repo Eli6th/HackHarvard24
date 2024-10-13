@@ -274,17 +274,18 @@ def exa_search(query: str) -> ExaSearchResponse:
     return ExaSearchResponse(results=formatted_results, total_results=len(raw_results.results))
 
 # Create L2 node
-def _l2_create_node(hub: Hub, thread_id: str, prompt: str, parent_node: Node, db: Session = next(get_db())):
+def _l2_create_node(hub: Hub, thread_id: str, prompt: str, parent_node: Node, url: str, article_title: str, db: Session = next(get_db())):
     
     # Create the unified contextual summary with title
     response = _message_and_wait_for_reply(hub.assistant_id, thread_id, prompt)
     summary, title = tuple(re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0]))
     # print(f"For the following prompt: {prompt}\nTitle: {title}\nSummary: {summary}\n\n\n")
 
+    final_summary = f"**{article_title}**\n[{url}]({url})\n\n{summary}"
     # Create the base of the Node in DB
     new_node = Node(
         prompt=prompt,
-        text=summary,
+        text=final_summary,
         title=title,
         thread_id=thread_id,
         hub_id=hub.id,
@@ -336,12 +337,12 @@ def l2_init(hub: Hub, prev_node: Node):
     prompts_with_threads = []
     for result in search_results.results:
         prompt = f"You have a summary for a new source, {result.title} which has the summary {result.summary}. Explain how this relates to the previous information {prev_node.title} with text {prev_node.text}. Output a summary enclosed in ~ and then a title based on this summary that is one sentence <= 50 characters also surrounded by ~ (don't forget that both the summary and the title should be enclosed in ~). Heavily emphasize the connection to the previous information. Provide a little bit of the context for the new source summary as well."
-        prompts_with_threads.append((prompt, client.beta.threads.create().id))
+        prompts_with_threads.append((prompt, client.beta.threads.create().id, result.url, result.title))
 
     # Run each l2 node creation in parallel
     with multiprocessing.Pool() as pool:
         results = pool.starmap(_l2_create_node, [
-            (hub, thread_id, prompt, prev_node) for prompt, thread_id in prompts_with_threads
+            (hub, thread_id, prompt, prev_node, url, title) for prompt, thread_id, url, title in prompts_with_threads
         ])
 
     pool.close()

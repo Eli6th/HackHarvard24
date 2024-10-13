@@ -124,13 +124,13 @@ async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     # Serialize and return the nodes
     return nodes
 
-@app.post("/l2nodes", response_model=List[NodeResponse])
+@app.get("/l2nodes/{l1_node_id}", response_model=List[NodeResponse])
 async def create_level_two_node(l1_node_id: str, db: _Session = Depends(get_db)):
     """
     Create a new level two node and return the response.
     """
     # Retrieve the L1 node from the database
-    l1_node = db.query(Node).get(Node.id == l1_node_id)
+    l1_node = db.get(Node, l1_node_id)
 
     # FOR DEBUGGING:
     # l1_node = db.query(Node).filter(Node.parent_node_id == None).first()
