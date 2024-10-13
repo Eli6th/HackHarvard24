@@ -246,8 +246,7 @@ def create_level_one_half_node(question: Question, node: Node, db: Session = nex
         text=response.text_list[0],
         title=title,
         thread_id=new_thread.id,
-        hub_id=node.hub.assistant_id,
-
+        hub_id=node.hub.id,
     )
     _generate_questions(new_node, node.hub.assistant_id, node.thread_id)
 
