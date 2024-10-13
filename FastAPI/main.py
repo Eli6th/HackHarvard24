@@ -1,20 +1,19 @@
 import json
-import threading
+import multiprocessing
 import uuid
 from io import BytesIO
 from typing import BinaryIO, List, Optional
 from uuid import UUID
 
 import uvicorn
-from database import (Hub, Image, Node, NodeResponse, Session,
+from database import (Hub, Image, Node, NodeResponse, Question, Session,
                       create_db_and_tables)
 from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
                      HTTPException, Response, UploadFile)
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as _Session
-
-from utils import l1_init, create_assistant_for_file, create_level_two_node, get_db, ExaSearchResponse, create_level_one_half_node
-from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image, Question
+from utils import (ExaSearchResponse, create_assistant_for_file, get_db,
+                   l1_init, l2_init)
 
 app = FastAPI()
 
@@ -85,6 +84,7 @@ async def start_session(
         }
 
 
+
 @app.get("/question/{question_id}", response_model=NodeResponse)
 async def answer_question(question_id: str, db: _Session = Depends(get_db)):
     """
@@ -102,14 +102,10 @@ async def answer_question(question_id: str, db: _Session = Depends(get_db)):
     new_node = create_level_one_half_node(question, prev_node)
     return new_node
 
-
 @app.get("/hubs/{hub_id}/nodes", response_model=List[NodeResponse])
 async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     """
     Get all nodes for the given hub ID.
-
-    Curl:
-    curl -X GET "http://127.0.0.1:8000/hubs/965b6e8d-f521-4ae5-859a-a6a9b4ef28e5/nodes
     """
     print(hub_id)
     # Fetch the hub by hub_id
@@ -128,23 +124,39 @@ async def get_hub_nodes(hub_id: str, db: _Session = Depends(get_db)):
     # Serialize and return the nodes
     return nodes
 
+@app.post("/l2nodes", response_model=List[NodeResponse])
+async def create_level_two_node(l1_node_id: str, db: _Session = Depends(get_db)):
+    """
+    Create a new level two node and return the response.
+    """
+    # Retrieve the L1 node from the database
+    l1_node = db.query(Node).get(Node.id == l1_node_id)
+
+    # FOR DEBUGGING:
+    # l1_node = db.query(Node).filter(Node.parent_node_id == None).first()
+
+    response = l2_init(l1_node.hub, l1_node)
+    nodes = db.query(Node).filter(Node.id.in_(response)).all()
+
+    # Serialize and return the nodes
+    return nodes
+
+
 @app.get("/runfull")
 async def runfull():
-    thread = threading.Thread(target=run_utils_main)
-    thread.start()
+    # Create a new process using multiprocessing
+    process = multiprocessing.Process(target=run_utils_main)
+    process.start()
 
-def run_utils_main():
-    # level_one_nodes = initiate_level_one_multiprocess()
-    # level_one_nodes = json.loads(level_one_nodes)
-    # for node in level_one_nodes:
-    #     response = create_level_two_node(node)
-    #     print(f"For node {node['title']} generated with prompt {node['prompt']}, we receive the following results:")
-    #     for result in response.results:
-    #         print(result)
-    #         # print(result.title)
-    #         # print(result.url)
-    #         # print(result.summary)
-    #         print()
+# FOR DEBUGGING
+def run_utils_main( db: Session = next(get_db())):
+    import requests
+    single_node = db.query(Node).filter(Node.parent_node_id == None).first()
+    response = requests.post(f"http://localhost:8000/l2nodes", params={"l1_node_id": single_node.id})
+    if response.status_code == 200:
+        print("L2 node created successfully:", response.json())
+    else:
+        print("Error creating L2 node:", response.status_code, response.text)
     return
 
 

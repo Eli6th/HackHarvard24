@@ -94,58 +94,56 @@ function FlowCanvas() {
 
   // Callback to handle partial data updates
   const handlePartialResult = (items: ApiResponseItem[]) => {
-  // Iterate over the new items, but only update one node per item
-  items.forEach((item) => {
-  console.log(item);
+    // Iterate over the new items, but only update one node per item
+    items.forEach((item) => {
+      console.log(item);
 
-  if (!usedItemIds.current.has(item.id)) {
-    console.log("not used");
+      if (!usedItemIds.current.has(item.id)) {
+        console.log("not used");
 
-    setNodes((nds) => {
-      // Find all unpopulated nodes (nodes that still have 'Loading...')
-      const unpopulatedIndices = nds
+        setNodes((nds) => {
+          // Find all unpopulated nodes (nodes that still have 'Loading...')
+          const unpopulatedIndices = nds
         .map((node, index) =>
           node.data.title === 'Loading...' && !populatedNodeIds.current.has(node.id) ? index : -1
         )
         .filter((index) => index !== -1); // Get valid indices
 
-      console.log("Unpopulated nodes indices:", unpopulatedIndices);
+        console.log("Unpopulated nodes indices:", unpopulatedIndices);
 
-      if (unpopulatedIndices.length > 0 && items.length > 0) {
-        // We will only update the number of nodes equal to the number of items
-        const updatedNodes = [...nds]; // Create a shallow copy of nodes
-        const nonUsedItems = items.filter((item) => !usedItemIds.current.has(item.id));
+        if (unpopulatedIndices.length > 0 && items.length > 0) {
+          // We will only update the number of nodes equal to the number of items
+          const updatedNodes = [...nds]; // Create a shallow copy of nodes
+          const nonUsedItems = items.filter((item) => !usedItemIds.current.has(item.id));
 
-        unpopulatedIndices.slice(0, nonUsedItems.length).forEach((unpopulatedIndex, i) => {
-          const currentItem = nonUsedItems[i];
+          unpopulatedIndices.slice(0, nonUsedItems.length).forEach((unpopulatedIndex, i) => {
+            const currentItem = nonUsedItems[i];
 
-          if (currentItem) {
-            // Update that specific node with the current item
-            updatedNodes[unpopulatedIndex] = {
-              ...updatedNodes[unpopulatedIndex],
-              data: {
-                ...updatedNodes[unpopulatedIndex].data,
-                title: currentItem.title, // Update node title
-                text: currentItem.text,   // Update node text
-              },
-            };
+            if (currentItem) {
+              // Update that specific node with the current item
+              updatedNodes[unpopulatedIndex] = {
+                ...updatedNodes[unpopulatedIndex],
+                data: {
+                  ...updatedNodes[unpopulatedIndex]?.data,
+                  title: currentItem.title, // Update node title
+                  text: currentItem.text,   // Update node text
+                },
+              };
 
-            // Mark the node as populated and the item as used
-            populatedNodeIds.current.add(updatedNodes[unpopulatedIndex]?.id ?? '');
-            usedItemIds.current.add(currentItem.id);
+              // Mark the node as populated and the item as used
+              populatedNodeIds.current.add(updatedNodes[unpopulatedIndex]?.id ?? '');
+              usedItemIds.current.add(currentItem.id);
+            }
+          });
+
+            return updatedNodes;
           }
+
+          return nds; // Return original nodes if no unpopulated nodes found
         });
-
-        return updatedNodes;
       }
-
-      return nds; // Return original nodes if no unpopulated nodes found
     });
-  }
-});
-
-};
-
+  };
 
   try {
     await pollApiUntilNItems(url, 5, handlePartialResult); // Pass the callback to handle partial data
