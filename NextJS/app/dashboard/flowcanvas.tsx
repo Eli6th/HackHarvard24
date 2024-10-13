@@ -251,6 +251,7 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
       edgePoints = [true, true, false, true];
       positions = [Position.Left, Position.Right];
     }
+
     const node: Node = {
       id: item.id,
       type: 'L1',
@@ -353,6 +354,7 @@ function FlowCanvas() {
                 const currentItem = nonUsedItems[i];
 
                 if (currentItem) {
+                  console.log(currentItem.images.map((image) => image.url))
                   // Update that specific node with the current item
                   updatedNodes[unpopulatedIndex] = {
                     ...updatedNodes[unpopulatedIndex],
@@ -361,8 +363,8 @@ function FlowCanvas() {
                     title: currentItem.title,
                     text: currentItem.text,
                     questions: currentItem.questions.map((question) => question.content),
-                    images: currentItem.images.map((image) => image.url),
-                  },
+                    images: currentItem.images.map((image) => image.url)
+                  }
                   };
 
                   // Mark the node as populated and the item as used
