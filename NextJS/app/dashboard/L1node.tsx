@@ -16,8 +16,13 @@ function L1Node({ data }: NodeProps<{
   expanded: boolean;
   isHighlighted: boolean;
   edgePoints: boolean[];
-  questions?: string[];
+  questions?: {
+    id: string
+    content: string
+  }[];
   images?: string[];
+  id: string,
+  addAdditionalNode: (parent_node_id: string, level: string, question: { id: string; content: string } | undefined) => Promise<void>;
 }>) {
   console.log(data.images)
   const [isExpanded, setIsExpanded] = useState<boolean>(data.expanded);
@@ -28,6 +33,7 @@ function L1Node({ data }: NodeProps<{
   useEffect(() => {
     setIsExpanded(data.expanded);
   }, [data.expanded]);
+
 
   if (!isExpanded) {
     return (
@@ -52,13 +58,13 @@ function L1Node({ data }: NodeProps<{
         <Handle type={data.edgePoints[1] ? 'source' : 'target'} position={Position.Bottom} id="bottom" />
         <Handle type={data.edgePoints[2] ? 'source' : 'target'} position={Position.Right} id="right" />
         <Handle type={data.edgePoints[3] ? 'source' : 'target'} position={Position.Top} id="top" />
-        {data.isHighlighted && !openQuestions && (
+        {data.isHighlighted && !openQuestions && data.title !== "Loading..." && (
           <>
             <Button
               variant="ghost"
               className="absolute -right-12 top-0 rounded-full border-2 text-gray-800 bg-[#F9F6F0] font-extrabold hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
               style={{ height: '40px', width: '40px', fontSize: '20px' }}
-              onClick={() => setOpenQuestions(true)}
+              onClick={() => setOpenQuestions((data.title === "Loading..." ? false : true))}
             >
               ?
             </Button>
@@ -97,11 +103,15 @@ function L1Node({ data }: NodeProps<{
                     left: `calc(50% + ${left * 1.25}px)`,
                     transform: 'translate(-50%, -50%)',
                   }}
-                  key={index}
+                  key={question.id}
                   variant="ghost"
                   className="text-xs text-gray-800 bg-[#F9F6F0] w-[250px] border-2 border-[#E0E0E0] hover:bg-[#F9F6F0] hover:border-2 hover:border-gray-800"
+                  onClick={() => {
+                    data.addAdditionalNode(data.id, "L1", question);
+                    data.questions = data.questions.filter(_question => _question.id !== question.id);
+                  }}
                 >
-                  {question}
+                  {question.content}
                 </Button>
               );
             })}
