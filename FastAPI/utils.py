@@ -11,9 +11,9 @@ from typing import BinaryIO, Tuple, List, Optional
 import json
 from sqlalchemy.orm import Session
 
-from .database import Hub, Node, Image, Question, get_db
-from .consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
-    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT, DELIMITER, LEVEL_ONE_HALF_PROMPT
+from database import Hub, Node, Image, Question, get_db
+from consts import INSTRUCTIONS, LEVEL_ONE_PROMPT_SUFFIX, ONE_LINER, INITIAL_PROMPT, SURPRISING, \
+    SUGGESTED_QUESTION_PROMPT, L2_OUTPUT, DELIMITER, RETRIES
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -95,41 +95,43 @@ def _message_and_wait_for_reply(assistant_id: str, thread_id: str, message: str)
         role="user",
         content=message
     )
+    tries = 0
+    while tries < RETRIES:
+        tries += 1
 
-    # Run the assistant and wait for the response
-    run = client.beta.threads.runs.create_and_poll(
-        thread_id=thread_id,
-        assistant_id=assistant_id,
-    )
-
-    # Check if the run is completed and fetch the messages
-    if run.status == 'completed':
-        # Retrieve the list of messages from the thread
-        messages_page = client.beta.threads.messages.list(
+        # Run the assistant and wait for the response
+        run = client.beta.threads.runs.create_and_poll(
             thread_id=thread_id,
-            order="asc"
+            assistant_id=assistant_id,
         )
+        # Check if the run is completed and fetch the messages
+        if run.status == 'completed':
+            # Retrieve the list of messages from the thread
+            messages_page = client.beta.threads.messages.list(
+                thread_id=thread_id,
+                order="asc"
+            )
 
-        # Convert the SyncCursorPage object to a list
-        messages = list(messages_page)
+            # Convert the SyncCursorPage object to a list
+            messages = list(messages_page)
 
-        # Return the last message content (assuming the assistant's reply is the last one)
-        if messages:
-            contents = messages[-1].content
-            images = []
-            texts = []
+            # Return the last message content (assuming the assistant's reply is the last one)
+            if messages:
+                contents = messages[-1].content
+                images = []
+                texts = []
 
-            for content in contents:
-                if hasattr(content, "image_file"):
-                    file_id = content.image_file.file_id
-                    resp = client.files.with_raw_response.retrieve_content(file_id)
-                    if resp.status_code == 200:
-                        images.append(resp.content)
-                else:
-                    text = content.text.value
-                    texts.append(text)
+                for content in contents:
+                    if hasattr(content, "image_file"):
+                        file_id = content.image_file.file_id
+                        resp = client.files.with_raw_response.retrieve_content(file_id)
+                        if resp.status_code == 200:
+                            images.append(resp.content)
+                    else:
+                        text = content.text.value
+                        texts.append(text)
 
-            return Response(text_list=texts, image_list=images)
+                return Response(text_list=texts, image_list=images)
 
     raise Exception(f"Failed to receive response for message: {message}")
 
@@ -149,28 +151,17 @@ def _parse_one_liner(one_liner, node):
             return None
 
 
- # Get interesting questions for a given Node (if any)
-def _generate_questions(node: Node, assistant_id: str, thread_id: str):
-    response = _message_and_wait_for_reply(assistant_id, thread_id, SUGGESTED_QUESTION_PROMPT)
-    suggested_questions = re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0])
-    for question_text in suggested_questions:
-        question = Question(content=question_text)  # Create a Question object
-        node.questions.append(question)  # Associate the question with the node
-
-def _generate_title(assistant_id: str, thread_id: str):
-    # Determine the concise title of the node
-    one_liner_prompt = ONE_LINER
-    if SURPRISING.get("enabled"):
-        one_liner_prompt += SURPRISING.get("prompt")
-    title = _message_and_wait_for_reply(assistant_id, thread_id, one_liner_prompt).text_list[0]
-    return title
-
 def _l1_create_node(hub: Hub, thread_id: str, prompt: str, db: Session = next(get_db())):
     # Process the prompt for the new node
     response = _message_and_wait_for_reply(hub.assistant_id, thread_id, prompt)
     text = "\n".join(response.text_list)
 
-    title = _generate_title(hub.assistant_id, thread_id)
+    # Determine the concise title of the node
+    one_liner_prompt = ONE_LINER
+    if SURPRISING.get("enabled"):
+        one_liner_prompt += SURPRISING.get("prompt")
+
+    title = _message_and_wait_for_reply(hub.assistant_id, thread_id, one_liner_prompt).text_list[0]
 
     # Create the base of the Node in DB
     new_node = Node(
@@ -204,7 +195,12 @@ def _l1_create_node(hub: Hub, thread_id: str, prompt: str, db: Session = next(ge
         new_node.images.append(image)
         images.append(image)  # Optionally collect them for further processing
 
-    _generate_questions(new_node, hub.assistant_id, thread_id)
+    # Get interesting questions for a given Node (if any)
+    response = _message_and_wait_for_reply(hub.assistant_id, thread_id, SUGGESTED_QUESTION_PROMPT)
+    suggested_questions = re.findall(rf'{DELIMITER}(.*?){DELIMITER}', response.text_list[0])
+    for question_text in suggested_questions:
+        question = Question(content=question_text)  # Create a Question object
+        new_node.questions.append(question)  # Associate the question with the node
 
     # Save Node to DB
     db.add(new_node)
@@ -226,39 +222,15 @@ def l1_init(hub: Hub, initial_thread: str):
             (hub, thread_id, prompt) for prompt, thread_id in prompts_with_threads
         ])
 
-def create_level_one_half_node(question: Question, node: Node, db: Session = next(get_db())):
-    prompt = question.content + LEVEL_ONE_HALF_PROMPT
-    response = _message_and_wait_for_reply(node.hub.assistant_id, node.thread_id, prompt)
-
-    title = _generate_title(node.hub.assistant_id, node.thread_id)
-
-    new_thread = client.beta.threads.create()
-
-    new_node = Node(
-        prompt=prompt,
-        text=response.text_list[0],
-        title=title,
-        thread_id=new_thread.id,
-        hub_id=node.hub.assistant_id,
-
-    )
-    _generate_questions(new_node, node.hub.assistant_id, node.thread_id)
-
-    # Save Node to DB
-    db.add(new_node)
-    db.commit()
-    return new_node
-
 # New level two prompting using Exa
 def create_level_two_node(prev_node: Node):
     # Use the findings from level one to prompt OpenAI for a query that Exa can use, and incorporate Exa prompt guidelines for better query formulation
-
     level_two_prompt = (
-        f"""Our findings about {prev_node.title} suggest the following trends:
+        f"""Our findings about {prev_node.title} suggest the following trends: 
         {prev_node.text}. Now, use create an exa query that used this information.
 
         Include only relevant trusted sources. Focus on journals or articles that delve into statistical analyses or provide clear empirical evidence.
-
+        
         Example prompt: "Here's a great article on the relationship between {prev_node.title} and its long-term implications:".
 
         Use the following guide to help craft a prompt as well:
