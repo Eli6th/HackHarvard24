@@ -1,18 +1,38 @@
-from fastapi import Depends, FastAPI, UploadFile, File, Form, HTTPException, Response, BackgroundTasks
-from io import BytesIO
-from typing import Optional, BinaryIO, List
-import uuid
-from uuid import UUID
 import json
 from utils import ExaSearchResponse
 import threading
+import uuid
+from io import BytesIO
+from typing import BinaryIO, List, Optional
+from uuid import UUID
+
 import uvicorn
+from database import (Hub, Image, Node, NodeResponse, Session,
+                      create_db_and_tables)
+from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
+                     HTTPException, Response, UploadFile)
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as _Session
 
-from utils import l1_init, create_assistant_for_file, create_level_two_node, get_db
-from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image
+
+from utils import l1_init, create_assistant_for_file, create_level_two_node, get_db, ExaSearchResponse, create_level_one_half_node
+from database import Session, Hub, Node, NodeResponse, create_db_and_tables, Image, Question
 
 app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:3001",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def startup_event():
