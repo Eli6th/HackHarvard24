@@ -480,7 +480,7 @@ function FlowCanvas() {
     } else {
       handleExaClick(parentNode.data.id, newNodes.map((node) => node.id))
     }
-  }
+  }}
 
   const handleQuestionClick = async (
     question: { id: string; content: string },
@@ -915,6 +915,7 @@ function FlowCanvas() {
     </div>
   );
 }
+
 
 export default function FlowCanvasParent() {
   return (
