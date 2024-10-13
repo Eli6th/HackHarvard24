@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {/* Hydration warning suppressed because of next-themes https://github.com/pacocoursey/next-themes */}
       <body>
         <Providers>
-          <div className="flex-col md:flex">
+          <div className="flex-col md:flex max-h-screen overflow-hidden">
             <div className="border-b">
               <div className="flex h-16 items-center px-4">
                 <Navbar className="mx-6" />

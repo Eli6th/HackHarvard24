@@ -112,7 +112,7 @@ export default function PricingSection() {
         <div className="flex w-full items-center justify-center space-x-2">
           <Switch
             id="interval"
-            onCheckedChange={(checked) => {
+            onCheckedChange={(checked: boolean) => {
               setInterval(checked ? "year" : "month");
             }}
           />

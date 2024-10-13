@@ -45,7 +45,7 @@ function L2Node({ data }: NodeProps<{
   return (
     <div
       style={{
-        background: '#998ede',
+        background: '#F9F6F0',
         color: '#222',
         padding: 10,
         fontSize: 12,
@@ -54,7 +54,7 @@ function L2Node({ data }: NodeProps<{
         maxWidth: 350,
         transition: 'border-width 0.1s ease',
       }}
-      className={data.isHighlighted ? 'border-[#E0E0E0] border-2' : 'border-gray-800 border-2'}
+      className={data.isHighlighted ? 'border-[#2cae8f] border-2' : 'border-[#6a6a6a] border-2'}
     >
       <TypographyH3>{data.title}</TypographyH3>
       {isExpanded && (

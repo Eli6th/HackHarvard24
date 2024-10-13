@@ -2,20 +2,22 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 
-const AskQuestionButton = ({ submitQuestionFunc, data }) => {
+const AskQuestionButton = ({ submitQuestionFunc, data }: { submitQuestionFunc: any, data: any }) => {
   const [isClicked, setIsClicked] = useState(false);
   const [question, setQuestion] = useState("");
   const [buttonPosition, setButtonPosition] = useState({});
-  const buttonRef = useRef(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleButtonClick = () => {
+    if (!buttonRef.current) return;
+
     // Get the button's exact position
     const rect = buttonRef.current.getBoundingClientRect();
-    const parentRect = buttonRef.current.parentElement.getBoundingClientRect(); // For relative positioning
+    const parentRect = buttonRef.current.parentElement?.getBoundingClientRect(); // For relative positioning
 
     setButtonPosition({
-      top: `${rect.top - parentRect.top}px`,
-      left: `${rect.left - parentRect.left}px`,
+      top: `${rect.top - (parentRect?.top ?? 0)}px`,
+      left: `${rect.left - (parentRect?.left ?? 0)}px`,
       width: `${rect.width}px`,
       height: `${rect.height}px`,
     });
@@ -23,7 +25,7 @@ const AskQuestionButton = ({ submitQuestionFunc, data }) => {
     setIsClicked(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     submitQuestionFunc(question); // Run the function with the question as an argument
     setIsClicked(false); // Reset to button state after submission

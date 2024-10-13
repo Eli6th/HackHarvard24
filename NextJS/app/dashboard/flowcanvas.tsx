@@ -283,25 +283,7 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
   return { nodes, edges };
 }
 
-
-function generateL2NodesAndEdges(parentNode: Node, data: {
-  id: string;
-  text: string;
-}): { nodes: Node[], edges: Edge[] } {
-  const radius = 800;
-  const buffer = 200;
-  const parentCoordinates = parentNode.position;
-
-  // for (const [index, item] of data.entries()) {
-
-  // }
-
-  return { nodes: [], edges: [] };
-}
-
 const flowKey = 'flow';
-
-
 
 function FlowCanvas() {
   const [l0NodeId, setL0NodeId] = useState<string | null>(null); // State to track the L0Node ID
@@ -361,14 +343,6 @@ function FlowCanvas() {
   const startInterval = () => {
     if (intervalRef.current === null) {
       intervalRef.current = setInterval(updateLoadingText, 10000); // Start interval every 10 seconds
-    }
-  };
-
-  // Function to stop the interval (for cleanup)
-  const stopInterval = () => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
     }
   };
 
@@ -475,10 +449,10 @@ function FlowCanvas() {
 
     if (level == "L1") {
       if (question) {
-        handleQuestionClick(question, newNodes[0].id);
+        handleQuestionClick(question, newNodes[0]?.id ?? '');
       } else {
         console.log("HERE")
-        handlePromptClick(prompt, newNodes[0].id, parent_node_id);
+        handlePromptClick(prompt ?? '', newNodes[0]?.id ?? '', parent_node_id);
       }
     } else {
       handleExaClick(parentNode.data.id, newNodes.map((node) => node.id))
@@ -497,12 +471,12 @@ function FlowCanvas() {
           if (node.id == node_id) {
             node.data = {
               ...node.data,
-              title: qNode.title,
-              text: qNode.text,
+              title: qNode?.title ?? '',
+              text: qNode?.text ?? '',
               expanded: false,
-              questions: qNode.questions,
-              images: qNode.images,
-              id: qNode.id,
+              questions: qNode?.questions ?? [],
+              images: qNode?.images ?? [],
+              id: qNode?.id ?? '',
             }
           }
         })
@@ -529,12 +503,12 @@ function FlowCanvas() {
         if (node.id == node_id) {
           node.data =  {
             ...node.data,
-            title: qNode.title,
-            text: qNode.text,
+            title: qNode?.title ?? '',
+            text: qNode?.text ?? '',
             expanded: false,
-            questions: qNode.questions,
-            images: qNode.images,
-            id: qNode.id,
+            questions: qNode?.questions ?? [],
+            images: qNode?.images ?? [],
+            id: qNode?.id ?? '',
           }
         }
       })
@@ -556,7 +530,7 @@ function FlowCanvas() {
     const qNodeList = await fetchExaNodes("http://localhost:8001/l2nodes", parent_node_id);
 
     // Ensure node_ids length matches qNodeList length before proceeding
-    if (node_ids.length !== qNodeList.length) {
+    if (node_ids.length !== (qNodeList?.length ?? 0)) {
       console.error("node_ids and qNodeList lengths do not match.");
       return;
     }
@@ -568,7 +542,7 @@ function FlowCanvas() {
 
       // Iterate through node_ids and qNodeList to update each node
       node_ids.forEach((node_id, index) => {
-        const correspondingApiItem = qNodeList[index];
+        const correspondingApiItem = qNodeList?.[index];
 
         // Find the node in shadow_nds with the matching node_id
         shadow_nds.forEach((node) => {
@@ -576,12 +550,12 @@ function FlowCanvas() {
             // Update the node's data with the corresponding ApiItem
             node.data = {
               ...node.data,
-              title: correspondingApiItem.title,
-              text: correspondingApiItem.text,
+              title: correspondingApiItem?.title ?? '',
+              text: correspondingApiItem?.text ?? '',
               expanded: false,
-              questions: correspondingApiItem.questions,
-              images: correspondingApiItem.images,
-              id: correspondingApiItem.id, // Optional: update the id if needed
+              questions: correspondingApiItem?.questions ?? [],
+              images: correspondingApiItem?.images ?? [],
+              id: correspondingApiItem?.id ?? '', // Optional: update the id if needed
             };
           }
         });
@@ -667,11 +641,11 @@ function FlowCanvas() {
     }
   }, [setNodes]);
 
-  const transformTableDataForL0Node = (tableData) => {
+  const transformTableDataForL0Node = (tableData: Record<string, any>[]) => {
     if (!tableData || tableData.length === 0) return [];
 
     // Get the column names from the first row
-    const columns = Object.keys(tableData[0]);
+    const columns = tableData?.[0] ? Object.keys(tableData[0]) : [];
 
     // Map over the columns to create the structure expected by createL0Node
     return columns.map((col) => ({
@@ -713,7 +687,7 @@ function FlowCanvas() {
         testData.map((item) => {
           item.title = "Loading..."
           item.id = String(Math.random())
-          item.text = loadingText[0]
+          item.text = loadingText[0] ?? ''
           item.questions = []
           item.images = []
           item.thread_id = ""

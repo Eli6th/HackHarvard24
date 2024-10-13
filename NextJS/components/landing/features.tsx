@@ -5,7 +5,6 @@ import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { TrendingUp, Sparkles, RefreshCw, Rocket, BarChart2, MessageSquare, Target, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Badge } from "@/components/ui/badge";
 
 const featureGroups = [
   {
@@ -49,7 +48,7 @@ export default function FeaturesSection() {
       className="relative mx-auto py-20 px-6 md:px-8 bg-transparent"
     >
       <div className="max-w-6xl mx-auto">
-        <motion.h2 
+        <motion.h2
           initial={{ opacity: 0, y: -20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
@@ -61,7 +60,7 @@ export default function FeaturesSection() {
           <br />
           <span className="text-gray-800 dark:text-gray-200">faster and cheaper</span>
         </motion.h2>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -114,8 +113,8 @@ function FeatureGroup({ group, index }: { group: typeof featureGroups[number], i
 function FeatureCard({ feature, router }: { feature: typeof featureGroups[number]["features"][number], router: ReturnType<typeof useRouter> }) {
   const cardVariants = {
     initial: { y: 0, opacity: 0.8 },
-    whileHover: { 
-      y: -3, 
+    whileHover: {
+      y: -3,
       opacity: 1,
       transition: {
         duration: 0.2,
