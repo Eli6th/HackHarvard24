@@ -73,7 +73,8 @@ const AskQuestionButton = ({ submitQuestionFunc, data }: { submitQuestionFunc: a
               border: "1px solid gray",
               borderRadius: "5px",
               width: "300px",
-              marginBottom: '10px' // Add space between the input and submit button
+              marginBottom: '10px', // Add space between the input and submit button
+              color: '#222',
             }}
           />
           <button
@@ -84,6 +85,7 @@ const AskQuestionButton = ({ submitQuestionFunc, data }: { submitQuestionFunc: a
               border: "1px solid gray",
               borderRadius: "5px",
               width: '300px', // Ensure the button width matches the input width
+              color: '#222',
             }}
           >
             Submit

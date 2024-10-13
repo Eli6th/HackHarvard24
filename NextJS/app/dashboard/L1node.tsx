@@ -154,11 +154,11 @@ function L1Node({ data }: NodeProps<{
           maxWidth: 350,
           transition: 'border-width 0.1s ease',
         }}
-        className={data.isHighlighted ? 'border-sky-500 border-2' : 'border-[#E0E0E0] border-2'}
+        className={data.isHighlighted ? 'border-[#2cae8f] border-4' : 'border-[#6a6a6a] border-2'}
       >
         <div className="flex justify-between">
           <TypographyH3>{data.title}</TypographyH3>
-          <Button variant="ghost" className="rounded-full text-gray-800 font-extrabold hover:bg-[#F9F6F0] hover:border-gray-800" onClick={() => setIsExpanded(false)}>
+          <Button variant="ghost" className="rounded-full text-[#fff] font-extrabold hover:text-[#fff] hover:bg-[#6a6a6a] hover:border-[#6a6a6a]" onClick={() => setIsExpanded(false)}>
             <Icons.close size={24} className="w-5 h-5 mb-3" />
           </Button>
         </div>
