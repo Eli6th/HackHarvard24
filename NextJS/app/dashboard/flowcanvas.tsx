@@ -196,6 +196,7 @@ function createL0Node(data: {
     id: data.id,
     type: 'L0',
     position: { x: 0, y: 0 },
+    connectable: false,
     data: { title: data.title, data: data.data }
   };
 }
@@ -244,6 +245,7 @@ function generateL1NodesAndEdges(parentNode: Node, data: {
     const node: Node = {
       id: item.id,
       type: 'L1',
+      connectable: false,
       position: {
         x: (parentCoordinates.x - 125) + Math.sin(angle) * radius,
         y: (parentCoordinates.y - 150 + y_buffer) + Math.cos(angle) * radius
@@ -409,7 +411,7 @@ function FlowCanvas() {
       id: String(Math.random()),
       type: level, // Assuming L2 for question nodes
       position: newNodePosition,
-
+      connectable: false,
       data: {
         title: "Loading...",
         text: loadingText[0],
